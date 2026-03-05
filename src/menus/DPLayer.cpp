@@ -21,6 +21,7 @@
 #include "../XPUtils.hpp"
 #include "../RecommendedUtils.hpp"
 #include "DPPackCell.hpp"
+#include "../DPLevels.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -67,7 +68,13 @@ void DPLayer::backButton(CCObject*) {
 }
 
 DPLayer* DPLayer::create() {
+	return DPLayer::create(-1, "");
+}
+
+DPLayer* DPLayer::create(int levelID, std::string levelName) {
 	auto pRet = new DPLayer();
+	pRet->levelID = levelID;
+	pRet->levelName = levelName;
 	if (pRet && pRet->init()) {
 		pRet->autorelease();
 		return pRet;
@@ -134,7 +141,7 @@ void DPLayer::reloadData(bool isInit) {
 					m_data = value.json().unwrapOrDefault();
 					Mod::get()->setSavedValue<matjson::Value>("cached-data", m_data);
 
-					m_tabs->setVisible(true);
+					if (this->levelID == -1) m_tabs->setVisible(true);
 					m_loadcircle->fadeAndRemove();
 
 					m_finishedLoading = true;
@@ -339,7 +346,7 @@ bool DPLayer::init() {
 	auto listMiddle = CCLayerColor::create({ 194, 114, 62, 255 });
 	auto listLeft = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
 	auto listRight = CCSprite::createWithSpriteFrameName("GJ_table_side_001.png");
-	auto listTop = CCSprite::createWithSpriteFrameName("GJ_table_top02_001.png");
+	auto listTop = CCSprite::createWithSpriteFrameName(this->levelID == -1 ? "GJ_table_top02_001.png" : "GJ_table_top_001.png");
 	auto listBottom = CCSprite::createWithSpriteFrameName("GJ_table_bottom_001.png");
 
 	listMiddle->setAnchorPoint({ 0.5, 0.5 });
@@ -373,6 +380,15 @@ bool DPLayer::init() {
 	this->addChild(listTop);
 	this->addChild(listBottom);
 
+	if (this->levelID != -1) {
+		auto title = CCLabelBMFont::create(this->levelName.c_str(), "bigFont.fnt");
+		title->setScale(0.8);
+		title->setPosition(listTop->getPosition() + ccp(0, 3));
+		title->setZOrder(11);
+		title->setID("title"_spr);
+		this->addChild(title);
+	}
+
 	//reload menu
 	auto reloadMenu = CCMenu::create();
 	reloadMenu->setPosition({ 0, 0 });
@@ -384,6 +400,7 @@ bool DPLayer::init() {
 	reloadMenu->setZOrder(11);
 	this->addChild(reloadMenu);
 	m_reload = reloadMenu;
+	m_reload->setVisible(this->levelID == -1);
 
 	//support menu
 	auto supportMenu = CCMenu::create();
@@ -424,6 +441,7 @@ bool DPLayer::init() {
 	extrasMenu->setID("extras-menu");
 	extrasMenu->setZOrder(11);
 	this->addChild(extrasMenu);
+	extrasMenu->setVisible(this->levelID == -1);
 
 	//utility tabs
 	auto skillsetsSpr = CircleButtonSprite::createWithSpriteFrameName("DP_Search.png"_spr);
@@ -449,6 +467,7 @@ bool DPLayer::init() {
 	utilityMenu->setID("utility-menu");
 	utilityMenu->setLayout(utilityLayout, true);
 	this->addChild(utilityMenu);
+	utilityMenu->setVisible(this->levelID == -1);
 
 	//xp button
 	auto xpText = CCLabelBMFont::create("XP", "bigFont.fnt");
@@ -461,7 +480,10 @@ bool DPLayer::init() {
 	xpMenu->setPosition({ listRight->getPositionX() + 35.f, size.height / 2 });
 	xpMenu->addChild(xpBtn);
 	xpMenu->setID("xp-menu");
-	if (Mod::get()->getSettingValue<bool>("show-xp")) { this->addChild(xpMenu); }
+	if (Mod::get()->getSettingValue<bool>("show-xp")) { 
+		this->addChild(xpMenu); 
+		xpMenu->setVisible(this->levelID == -1);
+	}
 
 	//list tabs
 	auto listTabs = CCMenu::create();
@@ -504,6 +526,7 @@ bool DPLayer::init() {
 	listTabs->setVisible(false);
 	this->addChild(listTabs);
 	m_tabs = listTabs;
+	m_tabs->setVisible(this->levelID == -1);
 
 	m_databaseVer = CCLabelBMFont::create("Loading...", "chatFont.fnt");
 	m_databaseVer->setAnchorPoint({ 1, 1 });
@@ -649,7 +672,7 @@ void DPLayer::reloadList(int type) {
 	for (auto p : packs) {
 
 		auto cell = ListCell::create();
-		cell->addChild(DPPackCell::create(p, dataIdx, packID));
+		cell->addChild(DPPackCell::create(p, dataIdx, packID, this->levelID));
 
 		packID++;
 		packListCells->addObject(cell);

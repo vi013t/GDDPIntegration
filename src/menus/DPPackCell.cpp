@@ -4,16 +4,18 @@
 #include "DPLayer.hpp"
 #include "../CustomText.hpp"
 #include "../DPUtils.hpp"
+#include "../DPLevels.hpp"
 
 //geode namespace
 using namespace geode::prelude;
 
-DPPackCell *DPPackCell::create(matjson::Value data, std::string index, int id) {
+DPPackCell *DPPackCell::create(matjson::Value data, std::string index, int id, int levelID) {
 	auto ret = new DPPackCell();
 
     ret->m_pack = data;
     ret->m_index = index;
 	ret->m_id = id;
+	ret->levelID = levelID;
 
 	if (ret && ret->init()) {
 		ret->autorelease();
@@ -21,6 +23,10 @@ DPPackCell *DPPackCell::create(matjson::Value data, std::string index, int id) {
 	}
 	CC_SAFE_DELETE(ret);
 	return nullptr;
+}
+
+DPPackCell *DPPackCell::create(matjson::Value data, std::string index, int id) {
+	return DPPackCell::create(data, index, id, -1);
 }
 
 bool DPPackCell::init() {
@@ -297,14 +303,8 @@ bool DPPackCell::init() {
 	cellMenu->setID("view-menu");
 	cellMenu->setPosition({ 0.f, 0.f });
 
-	auto viewSpr = ButtonSprite::create("View", "bigFont.fnt", "GJ_button_01.png", 0.6f);
-	viewSpr->m_BGSprite->setContentSize({ 66.f, 30.f });
-		
-	auto viewBtn = CCMenuItemSpriteExtra::create(viewSpr, this, menu_selector(DPLayer::openList));
-	viewBtn->setPosition({ 320.f, 25.f });
-	viewBtn->setID("view-btn");
-	viewBtn->setUserObject(new ListParameters(m_index, m_id));
-	cellMenu->addChild(viewBtn);
+	this->isInDifficulty = DPLevels::isLevelInDifficulty(this->levelID, this->m_id);
+	cellMenu->addChild(this->createViewButton());
 
 	if (m_id == 0 && m_index == "monthly") {
 		auto goldBG = CCLayerColor::create({ 255, 200, 0, 255 });
@@ -324,6 +324,53 @@ bool DPPackCell::init() {
 	this->addChild(progText);
 
     return true;
+}
+
+CCMenuItemSpriteExtra* DPPackCell::createViewButton() {
+	bool isEditMenu = this->levelID != -1;
+	auto viewText = !isEditMenu ? "View" : this->isInDifficulty ? "Remove" : "Add";
+	auto viewSpr = ButtonSprite::create(
+		viewText, 
+		"bigFont.fnt", 
+		!isEditMenu || !this->isInDifficulty ? "GJ_button_01.png" : "GJ_button_06.png",
+		!isEditMenu ? 0.6f : 0.4f
+	);
+	viewSpr->m_BGSprite->setContentSize({ 66.f, 30.f });
+	if (isEditMenu) {
+		viewSpr->setContentSize({ 68, 36 });
+		viewSpr->setPosition({ 39, 18.25 });
+		viewSpr->m_BGSprite->setPosition({ 34, 18.25 });
+		viewSpr->m_label->setPosition({ 33, 20 });
+	}
+		
+	auto viewBtn = CCMenuItemSpriteExtra::create(
+		viewSpr, 
+		this, 
+		!isEditMenu ? menu_selector(DPLayer::openList) : this->isInDifficulty ? menu_selector(DPPackCell::removeFromDifficulty) : menu_selector(DPPackCell::addToDifficulty)
+	);
+	if (isEditMenu) {
+		viewBtn->setPosition({ 307, 25.f });
+	} else {
+		viewBtn->setPosition({ 320.f, 25.f });
+	}
+	viewBtn->setID("view-btn");
+	viewBtn->setUserObject(new ListParameters(m_index, m_id));
+
+	return viewBtn;
+}
+
+void DPPackCell::removeFromDifficulty(CCObject* sender) {
+	DPLevels::removeMainListLevel(this->m_id, this->levelID);
+	this->isInDifficulty = false;
+	this->getChildByIDRecursive("view-btn")->removeFromParentAndCleanup(true);
+	this->getChildByIDRecursive("view-menu")->addChild(this->createViewButton());
+}
+
+void DPPackCell::addToDifficulty(CCObject* sender) {
+	DPLevels::addMainListLevel(this->m_id, this->levelID);
+	this->isInDifficulty = true;
+	this->getChildByIDRecursive("view-btn")->removeFromParentAndCleanup(true);
+	this->getChildByIDRecursive("view-menu")->addChild(this->createViewButton());
 }
 
 DPPackCell::~DPPackCell() {

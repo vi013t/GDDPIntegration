@@ -5,10 +5,20 @@
 #include <Geode/modify/LevelCell.hpp>
 #include "../menus/DPLayer.hpp"
 #include "../CustomText.hpp"
+#include "../DPLevels.hpp"
 //#include "../ListManager.hpp"
 
 //geode namespace
 using namespace geode::prelude;
+
+struct MainListData : public CCObject {
+	std::vector<int> defaultLevelIDs;
+
+    MainListData(std::vector<int> defaultIDs) : defaultLevelIDs(defaultIDs) {
+        // Always remember to call autorelease on your classes!
+        this->autorelease();
+    }
+};
 
 //modify level cells
 class $modify(DemonProgression, LevelCell) {
@@ -207,6 +217,51 @@ class $modify(DemonProgression, LevelCell) {
 					}
 				}
 			}
+
+			if (type == "main" && Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
+				auto viewButtonNode = typeinfo_cast<CCNode*>(this
+					->getChildByID("main-layer")
+					->getChildByID("main-menu")
+					->getChildByID("view-button")
+				);
+
+				auto inRemovedList = Mod::get()->getSavedValue<bool>("in-removed-menu", false);
+				
+				auto removeMenu = CCMenu::create();
+				removeMenu->setID("remove-menu"_spr);
+				removeMenu->setContentSize(ccp(41, 24));
+				if (viewButtonNode) {
+					removeMenu->setPosition(viewButtonNode->getPosition() + ccp(12, viewButtonNode->getContentHeight() - 60));
+					removeMenu->setAnchorPoint(viewButtonNode->getAnchorPoint());
+				}
+
+				auto removeButton = CCMenuItemSpriteExtra::create(
+					ButtonSprite::create(
+						inRemovedList ? "Add Back" : "Remove", 
+						0, 
+						false, 
+						"bigFont.fnt", 
+						inRemovedList ? "GJ_button_02.png" : "GJ_button_06.png", 
+						20.0f, 
+						0.2f
+					),
+					this,
+					inRemovedList ? menu_selector(DemonProgression::openUnremoveLevelPopup) : menu_selector(DemonProgression::openRemoveMainListLevelPopup)
+				);
+
+				auto levelIDs = std::vector<int>();
+				for (auto id : data["main"][id]["levelIDs"].asArray().unwrap()) {
+					levelIDs.push_back(id.asInt().unwrap());
+				}
+
+				log::info("gddpdif: {}", gddpDiff);
+				removeButton->setTag(gddpDiff);
+				removeButton->setID("remove-button"_spr);
+				removeMenu->addChild(removeButton);
+
+				this->getChildByID("main-layer")->getChildByID("main-menu")->addChild(removeMenu);
+			}
+
 
 			//skillset badges
 			if (Mod::get()->getSettingValue<bool>("skillset-badges") && skillsets.size() > 0 && Mod::get()->getSettingValue<bool>("show-skills-in-list")) {
@@ -493,5 +548,47 @@ class $modify(DemonProgression, LevelCell) {
 		}
 
 		return;
+	}
+
+	void removeSelf() {
+		auto children = this->getParent()->getChildren();
+		int thisIndex = children->indexOfObject(this);
+		for (int childIndex = 0; childIndex < thisIndex; childIndex++) {
+			auto topLevelNode = static_cast<CCNode*>(children->objectAtIndex(childIndex));
+			auto bottomLevelNode = static_cast<CCNode*>(children->objectAtIndex(childIndex + 1));
+			topLevelNode->setPosition(bottomLevelNode->getPosition());
+		}
+
+		this->getParent()->setContentHeight(this->getParent()->getContentHeight() - this->getContentHeight());
+		this->removeFromParentAndCleanup(true);
+	}
+
+	void openRemoveMainListLevelPopup(CCObject* sender) {
+		geode::createQuickPopup(
+			"Remove level?",
+			"Are you sure you want to remove this level from your main list progression?",
+			"Cancel", "Ok",
+			[this, sender](auto, bool confirmed) {
+				if (confirmed) {
+					DPLevels::removeMainListLevel(sender->getTag(), this->m_level->m_levelID);
+					this->removeSelf();
+				}
+			}
+		);
+	}
+
+	void openUnremoveLevelPopup(CCObject* sender) {
+		geode::createQuickPopup(
+			"Add level back?",
+			"Are you sure you want to add this level back into your main list progression?",
+			"Cancel", "Ok",
+			[this, sender](auto, bool confirmed) {
+				if (confirmed) {
+					log::info("unremoving level...");
+					DPLevels::unremoveMainListLevel(sender->getTag(), this->m_level->m_levelID);
+					this->removeSelf();
+				}
+			}
+		);
 	}
 };

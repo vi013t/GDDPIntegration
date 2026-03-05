@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Geode/Geode.hpp>
 #include <Geode/utils/web.hpp>
 #include <Geode/loader/Event.hpp>
@@ -25,6 +27,8 @@ protected:
 	bool m_error = false;
 	CCLabelBMFont* m_errorText;
 	CCLabelBMFont* m_monthlyTimer;
+	int levelID;
+	std::string levelName;
 
 	std::string m_devSecret;
 
@@ -39,6 +43,8 @@ protected:
 	virtual ~DPLayer();
 public:
 	static DPLayer* create(); //to create the layer
+	static DPLayer* create(int levelID, std::string levelName);
+
 	void callback(CCObject*); //callback for the button to go to this layer
 	void onTab(CCObject*); //tabs switched?
 	void openList(CCObject*); //open list with the id tagged on the btn
@@ -58,7 +64,6 @@ public:
 	void devCallback(CCObject*);
 	
 	void updateMonthlyTimer(float dt);
-	
 };
 
 struct ListSaveFormat {

@@ -35,6 +35,7 @@ public:
 	void reloadLevels(CCObject*);
 	void pageRight(CCObject*);
 	void pageLeft(CCObject*);
+	void viewRemoved(CCObject* sender);
 
 	void updateProgressBar();
 	void updateSave();

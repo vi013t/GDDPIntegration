@@ -1,5 +1,5 @@
 {
-		"geode": "5.0.0-beta.2",
+		"geode": "5.1.0",
 		"gd": {
 			"win": "2.2081",
 			"android": "2.2081",
@@ -68,6 +68,12 @@
 			"description": "Disables the Locked Tiers so you can Jump Difficulties to your heart's content.",
 			"type": "bool",
 			"default": false
+		},
+		"enable-main-list-editing": {
+			"name": "Enable Main List Editing",
+			"description": "Enables adding and removing levels to the main list.",
+			"type": "bool",
+			"default": true
 		},
 		"unlock-all-legacy": {
 			"name": "Unlock All Legacy Packs",

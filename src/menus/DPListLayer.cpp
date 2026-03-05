@@ -10,6 +10,8 @@
 #include "DPListLayer.hpp"
 #include "../RecommendedUtils.hpp"
 #include "../CustomText.hpp"
+#include "../DPLevels.hpp"
+#include "DPRemovedLayer.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -99,6 +101,28 @@ bool DPListLayer::init(const char* type, int id) {
 	infoMenu->addChild(infoButton);
 	infoMenu->setID("info-menu");
 	this->addChild(infoMenu);
+
+	//removed menu
+	if (Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
+		auto removedMenu = CCMenu::create();
+		removedMenu->setPosition({ -25, 25 });
+		removedMenu->setID("removed-menu"_spr);
+		removedMenu->setZOrder(2);
+
+		auto removedSprite = CCSprite::createWithSpriteFrameName("GJ_trashBtn_001.png");
+		removedSprite->setScale(1);
+
+		auto removedButton = CCMenuItemSpriteExtra::create(
+			removedSprite,
+			this,
+			menu_selector(DPListLayer::viewRemoved)
+		);
+		removedButton->setID("removed-button"_spr);
+		removedButton->setPosition(ccp(removedMenu->getContentWidth(), 0));
+		removedMenu->addChild(removedButton);
+
+		this->addChild(removedMenu);
+	}
 
 	//reload menu
 	auto reloadMenu = CCMenu::create();
@@ -328,15 +352,17 @@ void DPListLayer::loadLevels(int page) {
 	
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	std::vector<int> levelIDs = {0};
-	if (!data[m_type][m_id]["levelIDs"].isNull()) levelIDs = data[m_type][m_id]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+	if (m_type == "main") {
+		levelIDs = DPLevels::getMainListLevels(m_id, data["main"]);
+	} else if (!data[m_type][m_id]["levelIDs"].isNull()) {
+		levelIDs = data[m_type][m_id]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+	}
 
 	m_IDs.clear();
 
 	for (auto const& level : levelIDs) {
 		if (level > 0) m_IDs.push_back(std::to_string(level));
 	}
-
-	log::info("{}", m_IDs);
 
 	m_right->setVisible(m_IDs.size() > 10);
 
@@ -364,7 +390,6 @@ void DPListLayer::loadLevels(int page) {
 }
 
 void DPListLayer::loadLevelsFinished(CCArray* levels, const char*) {
-
 	if (m_loadingCancelled) { return; }
 
 	auto listSize = m_IDs.size();
@@ -499,6 +524,17 @@ DPListLayer* DPListLayer::create(const char* type, int id) {
 	}
 	CC_SAFE_DELETE(pRet); //don't crash if it fails
 	return nullptr;
+}
+
+void DPListLayer::viewRemoved(CCObject* sender) {
+	auto scene = CCScene::create(); // creates the scene
+	auto dpLayer = DPRemovedLayer::create(m_id);
+
+	scene->addChild(dpLayer);
+
+	CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, scene)); // push transition
+
+	return;
 }
 
 DPListLayer::~DPListLayer() {

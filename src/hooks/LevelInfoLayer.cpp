@@ -9,6 +9,7 @@
 #include "../RecommendedUtils.hpp"
 #include "../CustomText.hpp"
 #include "../popups/OpenStartposPopup.hpp"
+#include "../menus/DPLayer.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -67,6 +68,21 @@ class $modify(DemonProgression, LevelInfoLayer) {
 			log::info("Something went wrong validating the GDDP list data.");
 
 			return true;
+		}
+
+		// add "remove from gddp" button
+		// todo: what if a level is in multiple difficulty lists?
+		if (Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
+			auto removeSprite = CircleButtonSprite::createWithSpriteFrameName("DP_Logo.png"_spr);
+			removeSprite->setScale(1);
+
+			auto removeButton = CCMenuItemSpriteExtra::create(
+				removeSprite,
+				this,
+				menu_selector(DemonProgression::openRemoveFromGDDPPopup)
+			);
+			removeButton->setID("remove-from-gddp-button"_spr);
+			this->getChildByID("left-side-menu")->addChildAtPosition(removeButton, Anchor::Top, { 0, 8 });
 		}
 
 		bool inGDDP = Mod::get()->getSavedValue<bool>("in-gddp");
@@ -686,6 +702,17 @@ class $modify(DemonProgression, LevelInfoLayer) {
 
 			RecommendedUtils::validateLevels();
 		}
+
+		return;
+	}
+
+	void openRemoveFromGDDPPopup(CCObject* sender) {
+		auto scene = CCScene::create();
+		auto dpLayer = DPLayer::create(this->m_level->m_levelID, this->m_level->m_levelName);
+
+		scene->addChild(dpLayer);
+
+		CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, scene));
 
 		return;
 	}
