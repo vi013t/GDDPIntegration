@@ -5,7 +5,7 @@
 #include <Geode/modify/LevelCell.hpp>
 #include "../menus/DPLayer.hpp"
 #include "../CustomText.hpp"
-#include "../DPLevels.hpp"
+#include "../MainListEditor.hpp"
 //#include "../ListManager.hpp"
 
 //geode namespace
@@ -550,6 +550,11 @@ class $modify(DemonProgression, LevelCell) {
 		return;
 	}
 
+	/**
+	 * Removes this level cell, while adjusting the position of surrounding cells to make up for the empty
+	 * space left behind. All children of this cell are cleaned up. This is called when the level is removed
+	 * from the list under the `enable-main-list-editing` setting.
+	 */
 	void removeSelf() {
 		auto children = this->getParent()->getChildren();
 		int thisIndex = children->indexOfObject(this);
@@ -563,6 +568,13 @@ class $modify(DemonProgression, LevelCell) {
 		this->removeFromParentAndCleanup(true);
 	}
 
+	/**
+	 * Called when the "remove" button is pressed, to open a popup to remove a level
+	 * from the default GDDP under the `enable-main-list-editing` setting. This expects 
+	 * the tag of the button (sender) to be the difficulty index to remove the level from.
+	 * 
+	 * @param sender The "remove" button.
+	 */
 	void openRemoveMainListLevelPopup(CCObject* sender) {
 		geode::createQuickPopup(
 			"Remove level?",
@@ -570,13 +582,21 @@ class $modify(DemonProgression, LevelCell) {
 			"Cancel", "Ok",
 			[this, sender](auto, bool confirmed) {
 				if (confirmed) {
-					DPLevels::removeMainListLevel(sender->getTag(), this->m_level->m_levelID);
+					MainListEditor::removeMainListLevel(sender->getTag(), this->m_level->m_levelID);
 					this->removeSelf();
 				}
 			}
 		);
 	}
 
+	/**
+	 * Called when the "add back" button is pressed, to open a popup to "unremove" a level
+	 * from the default GDDP that was removed from the main list under the `enable-main-list-editing`
+	 * setting. This expects the tag of the button (sender) to be the difficulty index to remove the
+	 * level from.
+	 * 
+	 * @param sender The "add back" button.
+	 */
 	void openUnremoveLevelPopup(CCObject* sender) {
 		geode::createQuickPopup(
 			"Add level back?",
@@ -585,7 +605,7 @@ class $modify(DemonProgression, LevelCell) {
 			[this, sender](auto, bool confirmed) {
 				if (confirmed) {
 					log::info("unremoving level...");
-					DPLevels::unremoveMainListLevel(sender->getTag(), this->m_level->m_levelID);
+					MainListEditor::unremoveMainListLevel(sender->getTag(), this->m_level->m_levelID);
 					this->removeSelf();
 				}
 			}

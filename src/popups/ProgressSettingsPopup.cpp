@@ -3,7 +3,7 @@
 
 #include "ProgressSettingsPopup.hpp"
 #include "../menus/RouletteSafeLayer.hpp"
-#include "../DPLevels.hpp"
+#include "../MainListEditor.hpp"
 #include "../menus/DPListLayer.hpp"
 
 ProgressSettingsPopup* ProgressSettingsPopup::create(int difficultyIndex) {
@@ -100,7 +100,8 @@ void ProgressSettingsPopup::confirm(CCObject* sender) {
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	int defaultLevelRequirement = data["main"][this->difficultyIndex]["reqLevels"].asInt().unwrap();
 	int amount = inputText == "all" ? -2 : numFromString<int>(this->valueInput->getString()).unwrapOr(defaultLevelRequirement);
-	DPLevels::setRequiredLevels(this->difficultyIndex, amount);
+	if (amount < -2) amount = defaultLevelRequirement;
+	MainListEditor::setRequiredLevels(this->difficultyIndex, amount);
 
 	auto dplist = static_cast<DPListLayer*>(this->getParent()->getChildByIndex(0));
 	dplist->updateProgressBar();

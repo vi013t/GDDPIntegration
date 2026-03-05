@@ -73,7 +73,7 @@
 			"name": "Enable Main List Editing",
 			"description": "Enables adding and removing levels to the main list.",
 			"type": "bool",
-			"default": true
+			"default": false
 		},
 		"unlock-all-legacy": {
 			"name": "Unlock All Legacy Packs",

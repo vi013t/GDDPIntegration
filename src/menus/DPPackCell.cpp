@@ -3,7 +3,7 @@
 #include "DPPackCell.hpp"
 #include "DPLayer.hpp"
 #include "../CustomText.hpp"
-#include "../DPLevels.hpp"
+#include "../MainListEditor.hpp"
 #include "../DPUtils.hpp"
 
 //geode namespace
@@ -52,13 +52,13 @@ void DPPackCell::updateDPLayer() {
 }
 
 void DPPackCell::removeFromDifficulty(CCObject* sender) {
-	DPLevels::removeMainListLevel(this->m_id, this->levelID);
+	MainListEditor::removeMainListLevel(this->m_id, this->levelID);
 	this->recreate();
 	this->updateDPLayer();
 }
 
 void DPPackCell::addToDifficulty(CCObject* sender) {
-	DPLevels::addMainListLevel(this->m_id, this->levelID);
+	MainListEditor::addMainListLevel(this->m_id, this->levelID);
 	this->recreate();
 	this->updateDPLayer();
 }
@@ -72,11 +72,11 @@ bool DPPackCell::recreate() {
     std::string name = m_pack["name"].asString().unwrapOr("null");
     std::string sprite = m_pack["sprite"].asString().unwrapOr("DP_Unknown");
     std::string plusSprite = m_pack["plusSprite"].asString().unwrapOr("DP_Unknown");
-    int reqLevels =  m_index == "main" ? DPLevels::getRequiredLevels(this->m_id) : m_pack["reqLevels"].as<int>().unwrapOr(-1); 
+    int reqLevels =  m_index == "main" ? MainListEditor::getRequiredLevels(this->m_id) : m_pack["reqLevels"].as<int>().unwrapOr(-1); 
 	if (reqLevels == -2) {
-		reqLevels = DPLevels::getMainListLevels(this->m_id).size();
+		reqLevels = MainListEditor::getMainListLevels(this->m_id).size();
 	}
-    std::vector<int> levelIDs = DPLevels::getMainListLevels(this->m_id);
+    std::vector<int> levelIDs = MainListEditor::getMainListLevels(this->m_id);
     int month = m_pack["month"].as<int>().unwrapOr(-1); //Monthly Only
     int year = m_pack["year"].as<int>().unwrapOr(-1); //Monthly Only
 	int mainPack = m_pack["mainPack"].as<int>().unwrapOr(-1); //Legacy Only
@@ -340,13 +340,13 @@ bool DPPackCell::recreate() {
 	cellMenu->setID("view-menu");
 	cellMenu->setPosition({ 0.f, 0.f });
 
-	this->isInDifficulty = DPLevels::isLevelInDifficulty(this->levelID, this->m_id);
+	auto isInDifficulty = MainListEditor::isLevelInDifficulty(this->levelID, this->m_id);
 	bool isEditMenu = this->levelID != -1;
-	auto viewText = !isEditMenu ? "View" : this->isInDifficulty ? "Remove" : "Add";
+	auto viewText = !isEditMenu ? "View" : isInDifficulty ? "Remove" : "Add";
 	auto viewSpr = ButtonSprite::create(
 		viewText, 
 		"bigFont.fnt", 
-		!isEditMenu || !this->isInDifficulty ? "GJ_button_01.png" : "GJ_button_06.png",
+		!isEditMenu || !isInDifficulty ? "GJ_button_01.png" : "GJ_button_06.png",
 		!isEditMenu ? 0.6f : 0.4f
 	);
 	viewSpr->m_BGSprite->setContentSize({ 66.f, 30.f });
@@ -360,7 +360,7 @@ bool DPPackCell::recreate() {
 	auto viewBtn = CCMenuItemSpriteExtra::create(
 		viewSpr, 
 		this, 
-		!isEditMenu ? menu_selector(DPLayer::openList) : this->isInDifficulty ? menu_selector(DPPackCell::removeFromDifficulty) : menu_selector(DPPackCell::addToDifficulty)
+		!isEditMenu ? menu_selector(DPLayer::openList) : isInDifficulty ? menu_selector(DPPackCell::removeFromDifficulty) : menu_selector(DPPackCell::addToDifficulty)
 	);
 	if (isEditMenu) {
 		viewBtn->setPosition({ 307, 25.f });

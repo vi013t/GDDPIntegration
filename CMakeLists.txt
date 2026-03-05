@@ -14,8 +14,8 @@ project(GDDPIntegration VERSION 1.0.0)
 add_library(${PROJECT_NAME} SHARED
     #src/main.cpp
     # Add your cpp files here
-    src/DPUtils.cpp
-	src/DPLevels.cpp
+    src/DPUtils.cpp 
+	src/MainListEditor.cpp
 	src/popups/ProgressSettingsPopup.cpp
 	src/menus/DPRemovedLayer.cpp 
     src/hooks/CreatorLayer.cpp

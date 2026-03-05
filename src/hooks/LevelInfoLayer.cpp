@@ -79,7 +79,7 @@ class $modify(DemonProgression, LevelInfoLayer) {
 			auto removeButton = CCMenuItemSpriteExtra::create(
 				removeSprite,
 				this,
-				menu_selector(DemonProgression::openRemoveFromGDDPPopup)
+				menu_selector(DemonProgression::openAddOrRemoveToGDDPPopup)
 			);
 			removeButton->setID("remove-from-gddp-button"_spr);
 			this->getChildByID("left-side-menu")->addChildAtPosition(removeButton, Anchor::Top, { 0, 8 });
@@ -706,7 +706,11 @@ class $modify(DemonProgression, LevelInfoLayer) {
 		return;
 	}
 
-	void openRemoveFromGDDPPopup(CCObject* sender) {
+	/**
+	 * Opens the popup to add/remove the level from a main list GDDP pack under the
+	 * `enable-main-list-editing` flag. This doesn't need a tag from the sender object.
+	 */
+	void openAddOrRemoveToGDDPPopup(CCObject* sender) {
 		auto scene = CCScene::create();
 		auto dpLayer = DPLayer::create(this->m_level->m_levelID, this->m_level->m_levelName);
 

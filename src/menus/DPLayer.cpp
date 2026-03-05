@@ -21,7 +21,7 @@
 #include "../XPUtils.hpp"
 #include "../RecommendedUtils.hpp"
 #include "DPPackCell.hpp"
-#include "../DPLevels.hpp"
+#include "../MainListEditor.hpp"
 #include "../DPUtils.hpp"
 
 //geode namespace
@@ -153,7 +153,7 @@ void DPLayer::reloadData(bool isInit) {
 					auto glm = GameLevelManager::sharedState();
 					auto glmCompletedLvls = glm->getCompletedLevels(false);
 
-					auto allMainLevels = DPLevels::getAllMainListLevels();
+					auto allMainLevels = MainListEditor::getAllMainListLevels();
 					if (glmCompletedLvls->count() > 0) {
 						for (int i = 0; i < glmCompletedLvls->indexOfObject(glmCompletedLvls->lastObject()); i++) {
 							auto lvl = static_cast<GJGameLevel*>(glmCompletedLvls->objectAtIndex(i));

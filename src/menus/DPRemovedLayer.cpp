@@ -7,7 +7,7 @@
 #include <Geode/loader/Event.hpp>
 
 #include "DPRemovedLayer.hpp"
-#include "../DPLevels.hpp"
+#include "../MainListEditor.hpp"
 #include "../CustomText.hpp"
 
 DPRemovedLayer* DPRemovedLayer::create(int difficultyIndex) {
@@ -25,7 +25,7 @@ bool DPRemovedLayer::init(int difficultyIndex) {
 	this->difficultyIndex = difficultyIndex;
 	Mod::get()->setSavedValue("in-removed-menu", true);
 
-	auto removedLevels = DPLevels::getRemovedMainListLevels(difficultyIndex);
+	auto removedLevels = MainListEditor::getRemovedMainListLevels(difficultyIndex);
 
 	auto director = CCDirector::sharedDirector();
 	auto size = director->getWinSize();
@@ -108,7 +108,7 @@ void DPRemovedLayer::loadLevels(int page) {
 	m_list->m_listView->setVisible(false);
 	
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
-	this->levelIDs = DPLevels::getRemovedMainListLevels(this->difficultyIndex);
+	this->levelIDs = MainListEditor::getRemovedMainListLevels(this->difficultyIndex);
 	auto begin = levelIDs.begin() + page * 10;
 	auto end = levelIDs.begin() + std::min((int) (page + 1) * 10, (int) levelIDs.size() - 1);
 
@@ -208,11 +208,13 @@ void DPRemovedLayer::loadLevelsFinished(CCArray* levels, const char*) {
 }
 
 void DPRemovedLayer::pageRight(CCObject*) {
-
+	page += 1;
+	loadLevels(page);
 }
 
 void DPRemovedLayer::pageLeft(CCObject*) {
-
+	page -= 1;
+	loadLevels(page);
 }
 
 void DPRemovedLayer::backButton(CCObject*) {

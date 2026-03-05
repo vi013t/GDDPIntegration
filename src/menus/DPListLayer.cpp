@@ -10,7 +10,7 @@
 #include "DPListLayer.hpp"
 #include "../RecommendedUtils.hpp"
 #include "../CustomText.hpp"
-#include "../DPLevels.hpp"
+#include "../MainListEditor.hpp"
 #include "DPRemovedLayer.hpp"
 #include "../popups/ProgressSettingsPopup.hpp"
 
@@ -250,9 +250,9 @@ void DPListLayer::updateProgressBar() {
 	int month = data[m_type][m_id]["month"].as<int>().unwrapOr(11);
 	int year = data[m_type][m_id]["year"].as<int>().unwrapOr(1987);
 	std::vector<int> levelIDs = data[m_type][m_id]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-	int reqLevels = this->m_type == "main" ? DPLevels::getRequiredLevels(this->m_id) : data[m_type][m_id]["reqLevels"].as<int>().unwrapOr(-1);
+	int reqLevels = this->m_type == "main" ? MainListEditor::getRequiredLevels(this->m_id) : data[m_type][m_id]["reqLevels"].as<int>().unwrapOr(-1);
 	if (reqLevels == -2) {
-		reqLevels = DPLevels::getMainListLevels(this->m_id).size();
+		reqLevels = MainListEditor::getMainListLevels(this->m_id).size();
 	}
 	std::string saveID = (m_type == "monthly") ? fmt::format("{}-{}", month, year) : data[m_type][m_id]["saveID"].asString().unwrapOr("null");
 
@@ -382,7 +382,7 @@ void DPListLayer::loadLevels(int page) {
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	std::vector<int> levelIDs = {0};
 	if (m_type == "main") {
-		levelIDs = DPLevels::getMainListLevels(m_id);
+		levelIDs = MainListEditor::getMainListLevels(m_id);
 	} else if (!data[m_type][m_id]["levelIDs"].isNull()) {
 		levelIDs = data[m_type][m_id]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
 	}

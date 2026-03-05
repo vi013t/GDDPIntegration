@@ -4,7 +4,6 @@
 #include <Geode/utils/web.hpp>
 #include <Geode/loader/Event.hpp>
 #include <Geode/utils/async.hpp>
-#include <ctime>
 
 //geode namespace
 using namespace geode::prelude;
@@ -27,7 +26,19 @@ protected:
 	bool m_error = false;
 	CCLabelBMFont* m_errorText;
 	CCLabelBMFont* m_monthlyTimer;
+
+	/**
+	 * If this GDDP screen is being opened on a level (using the side button to add/remove the level from
+	 * a main list difficulty pack) this will be the ID of that level. If not, and it's just being opened
+	 * from the regular GDDP menu button, this will be -1. Also see `levelName`.
+	 */
 	int levelID;
+
+	/**
+	 * If this GDDP screen is being opened on a level (using the side button to add/remove the level from
+	 * a main list difficulty pack) this will be the name of that level. If not, and it's just being opened
+	 * from the regular GDDP menu button, this will be -1. Also see `levelID`.
+	 */
 	std::string levelName;
 
 	std::string m_devSecret;
@@ -42,7 +53,14 @@ protected:
 
 	virtual ~DPLayer();
 public:
-	static DPLayer* create(); //to create the layer
+	static DPLayer* create();
+
+	/**
+	 * Creates the Demon Progression screen from a level. This is called when the side button 
+	 * to add/remove the level from a main list difficulty pack) is pressed, which will change the
+	 * UI - including things like removing the tabs that aren't the main list, changing the buttons,
+	 * etc. To open the DP screen *normally*, use create() with no arguments.
+	 */
 	static DPLayer* create(int levelID, std::string levelName);
 
 	void callback(CCObject*); //callback for the button to go to this layer

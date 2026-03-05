@@ -4,21 +4,17 @@
 #include <Geode/loader/Event.hpp>
 #include <Geode/utils/web.hpp>
 
-#include "DPLevels.hpp"
+#include "MainListEditor.hpp"
 #include "DPUtils.hpp"
 
 //geode namespace
 using namespace geode::prelude;
 
-std::map<int, std::vector<int>> DPLevels::mainListLevels;
-std::map<int, int> DPLevels::requiredLevels;
+// define these! the mod will crash without these declarations
+std::map<int, std::vector<int>> MainListEditor::mainListLevels;
+std::map<int, int> MainListEditor::requiredLevels;
 
-/**
- * Returns a list of level IDs saved for a given difficulty.
- * 
- * @param difficultyIndex The index of the difficulty
- */
-std::vector<int> DPLevels::getMainListLevels(int difficultyIndex) {
+std::vector<int> MainListEditor::getMainListLevels(int difficultyIndex) {
     const auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	if (!Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
 		auto values = data["main"][difficultyIndex]["levelIDs"].asArray().unwrap();
@@ -31,31 +27,31 @@ std::vector<int> DPLevels::getMainListLevels(int difficultyIndex) {
 	}
 
 	// Check if the levels for this difficulty are already loaded
-	if (DPLevels::mainListLevels.contains(difficultyIndex)) {
-		return DPLevels::mainListLevels[difficultyIndex];
+	if (MainListEditor::mainListLevels.contains(difficultyIndex)) {
+		return MainListEditor::mainListLevels[difficultyIndex];
 	}
 
 	// No values loaded yet - check if any are saved to storage
 	auto storageKey = fmt::format("main-list-{}", difficultyIndex);
 	if (Mod::get()->hasSavedValue(storageKey)) {
 		auto levels = Mod::get()->getSavedValue<std::vector<int>>(storageKey);
-		DPLevels::mainListLevels[difficultyIndex] = levels;
+		MainListEditor::mainListLevels[difficultyIndex] = levels;
 		return levels;
 	}
 
 	// None saved to storage - get them normally
 	auto levels = data["main"][difficultyIndex]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-	DPLevels::mainListLevels[difficultyIndex] = levels;
-	DPLevels::saveMainListDifficulty(difficultyIndex);
+	MainListEditor::mainListLevels[difficultyIndex] = levels;
+	MainListEditor::saveMainListDifficulty(difficultyIndex);
 	return levels;
 }
 
-std::vector<int> DPLevels::getAllMainListLevels() {
+std::vector<int> MainListEditor::getAllMainListLevels() {
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	auto mainList = data["main"].asArray().unwrap();
 	auto levels = std::vector<int>();
 	for (int difficulty = 0; difficulty < mainList.size(); difficulty++)	 {
-		auto difficultyLevels = DPLevels::getMainListLevels(difficulty);
+		auto difficultyLevels = MainListEditor::getMainListLevels(difficulty);
 		for (auto levelID : difficultyLevels) {
 			DPUtils::addToVectorIfAbsent(levels, levelID);
 		}
@@ -64,26 +60,23 @@ std::vector<int> DPLevels::getAllMainListLevels() {
 	return levels;
 }
 
-bool DPLevels::isLevelInDifficulty(int levelID, int difficulty) {
+bool MainListEditor::isLevelInDifficulty(int levelID, int difficulty) {
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	auto levels = getMainListLevels(difficulty);
 	return std::find(levels.begin(), levels.end(), levelID) != levels.end();
 }
 
-/**
- * Adds a level to the given difficulty. If the level is already present for this difficulty,
- * a duplicate will not be added.
- * 
- * @param difficultyIndex The index of the difficulty
- * @param levelID The ID of the level to add
- */
-void DPLevels::addMainListLevel(int difficultyIndex, int levelID) {
-	if (!DPLevels::mainListLevels.contains(difficultyIndex)) {
-		DPLevels::mainListLevels[difficultyIndex] = std::vector<int>();
+void MainListEditor::addMainListLevel(int difficultyIndex, int levelID) {
+	if (!Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
+		return;
+	}
+
+	if (!MainListEditor::mainListLevels.contains(difficultyIndex)) {
+		MainListEditor::mainListLevels[difficultyIndex] = std::vector<int>();
 	}
 
 	// Check if level is already present for this difficulty
-	auto& levels = DPLevels::mainListLevels[difficultyIndex];
+	auto& levels = MainListEditor::mainListLevels[difficultyIndex];
 	if (DPUtils::isInVector(levels, levelID)) {
 		return;
 	}
@@ -102,23 +95,16 @@ void DPLevels::addMainListLevel(int difficultyIndex, int levelID) {
 	saveMainListDifficulty(difficultyIndex);
 }
 
-/**
- * Saves a difficulty list to persistent storage.
- * 
- * @param difficultyIndex The index of the difficulty
- */
-void DPLevels::saveMainListDifficulty(int difficultyIndex) {
-	Mod::get()->setSavedValue<std::vector<int>>(fmt::format("main-list-{}", difficultyIndex), DPLevels::mainListLevels[difficultyIndex]);
+void MainListEditor::saveMainListDifficulty(int difficultyIndex) {
+	Mod::get()->setSavedValue<std::vector<int>>(fmt::format("main-list-{}", difficultyIndex), MainListEditor::mainListLevels[difficultyIndex]);
 }
 
-/**
- * Removes a level from a difficulty list. The changes are saved to persistent storage.
- * 
- * @param difficultyIndex The index of the difficulty
- * @param levelID The ID of the level to remove
- */
-void DPLevels::removeMainListLevel(int difficultyIndex, int levelID) {
-	if (!DPLevels::mainListLevels.contains(difficultyIndex)) {
+void MainListEditor::removeMainListLevel(int difficultyIndex, int levelID) {
+	if (!Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
+		return;
+	}
+
+	if (!MainListEditor::mainListLevels.contains(difficultyIndex)) {
 		getMainListLevels(difficultyIndex);
 	}
 
@@ -128,10 +114,10 @@ void DPLevels::removeMainListLevel(int difficultyIndex, int levelID) {
 		defaultIDs.push_back(id.asInt().unwrap());
 	}
 
-	auto& difficultyList = DPLevels::mainListLevels[difficultyIndex];
+	auto& difficultyList = MainListEditor::mainListLevels[difficultyIndex];
 	auto levelIndex = std::find(difficultyList.begin(), difficultyList.end(), levelID);
 	if (levelIndex != difficultyList.end()) {
-		DPLevels::mainListLevels[difficultyIndex].erase(levelIndex);
+		MainListEditor::mainListLevels[difficultyIndex].erase(levelIndex);
 		saveMainListDifficulty(difficultyIndex);
 
 		// store this level as one of the "removed" ones if its part of the default GDDP
@@ -149,7 +135,7 @@ void DPLevels::removeMainListLevel(int difficultyIndex, int levelID) {
 	}
 }
 
-std::vector<int> DPLevels::getRemovedMainListLevels(int difficultyIndex) {
+std::vector<int> MainListEditor::getRemovedMainListLevels(int difficultyIndex) {
 	auto removedKey = fmt::format("removed-{}", difficultyIndex);
 	if (Mod::get()->hasSavedValue(removedKey)) {
 		return Mod::get()->getSavedValue<std::vector<int>>(removedKey);
@@ -157,8 +143,8 @@ std::vector<int> DPLevels::getRemovedMainListLevels(int difficultyIndex) {
 	return std::vector<int>();
 }
 
-void DPLevels::unremoveMainListLevel(int difficultyIndex, int levelID) {
-	auto removedLevels = DPLevels::getRemovedMainListLevels(difficultyIndex);
+void MainListEditor::unremoveMainListLevel(int difficultyIndex, int levelID) {
+	auto removedLevels = MainListEditor::getRemovedMainListLevels(difficultyIndex);
 
 	auto index = std::find(removedLevels.begin(), removedLevels.end(), levelID);
 	if (index == removedLevels.end()) {
@@ -178,33 +164,20 @@ void DPLevels::unremoveMainListLevel(int difficultyIndex, int levelID) {
 	saveMainListDifficulty(difficultyIndex);
 }
 
-int DPLevels::difficultyIndexOfLevel(int levelID) {
-	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
-	int difficulties = data["main"].size();
-	for (int difficulty = 0; difficulty < difficulties; difficulty++) {
-		auto levels = getMainListLevels(difficulty);
-		if (std::find(levels.begin(), levels.end(), levelID) != levels.end()) {
-			return difficulty;
-		}
-	}
-
-	return -1;
-}
-
-void DPLevels::setRequiredLevels(int difficultyIndex, int amount) {
-	DPLevels::requiredLevels[difficultyIndex] = amount;
+void MainListEditor::setRequiredLevels(int difficultyIndex, int amount) {
+	MainListEditor::requiredLevels[difficultyIndex] = amount;
 	Mod::get()->setSavedValue(fmt::format("required-{}", difficultyIndex), amount);
 }
 
-int DPLevels::getRequiredLevels(int difficultyIndex) {
+int MainListEditor::getRequiredLevels(int difficultyIndex) {
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	int amount = data["main"][difficultyIndex]["reqLevels"].asInt().unwrap();
 	if (!Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
 		return amount;
 	} 
 
-	if (DPLevels::requiredLevels.contains(difficultyIndex)) {
-		return DPLevels::requiredLevels[difficultyIndex];
+	if (MainListEditor::requiredLevels.contains(difficultyIndex)) {
+		return MainListEditor::requiredLevels[difficultyIndex];
 	}
 
 	std::string storageKey = fmt::format("required-{}", difficultyIndex);
