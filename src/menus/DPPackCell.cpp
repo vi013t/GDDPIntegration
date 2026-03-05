@@ -3,8 +3,8 @@
 #include "DPPackCell.hpp"
 #include "DPLayer.hpp"
 #include "../CustomText.hpp"
-#include "../DPUtils.hpp"
 #include "../DPLevels.hpp"
+#include "../DPUtils.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -32,14 +32,51 @@ DPPackCell *DPPackCell::create(matjson::Value data, std::string index, int id) {
 bool DPPackCell::init() {
     if (!CCLayer::init()) return false;
 
+	// init code is handled in DPPackCell::recreate(), which is called initially by DPPackCell::onEnter() (see below).
+
+    return true;
+}
+
+void DPPackCell::updateDPLayer() {
+	auto dpLayerNode = this
+		->getParent()
+		->getParent()
+		->getParent()
+		->getParent()
+		->getParent()
+		->getParent()			// lol??
+	;
+
+	auto dpLayer = static_cast<DPLayer*>(dpLayerNode);
+	dpLayer->reloadData(false);
+}
+
+void DPPackCell::removeFromDifficulty(CCObject* sender) {
+	DPLevels::removeMainListLevel(this->m_id, this->levelID);
+	this->recreate();
+	this->updateDPLayer();
+}
+
+void DPPackCell::addToDifficulty(CCObject* sender) {
+	DPLevels::addMainListLevel(this->m_id, this->levelID);
+	this->recreate();
+	this->updateDPLayer();
+}
+
+bool DPPackCell::recreate() {
+	this->removeAllChildrenWithCleanup(true);
+
     const auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 
     // setup important data
     std::string name = m_pack["name"].asString().unwrapOr("null");
     std::string sprite = m_pack["sprite"].asString().unwrapOr("DP_Unknown");
     std::string plusSprite = m_pack["plusSprite"].asString().unwrapOr("DP_Unknown");
-    int reqLevels = m_pack["reqLevels"].as<int>().unwrapOr(-1); 
-    std::vector<int> levelIDs = m_pack["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+    int reqLevels =  m_index == "main" ? DPLevels::getRequiredLevels(this->m_id) : m_pack["reqLevels"].as<int>().unwrapOr(-1); 
+	if (reqLevels == -2) {
+		reqLevels = DPLevels::getMainListLevels(this->m_id).size();
+	}
+    std::vector<int> levelIDs = DPLevels::getMainListLevels(this->m_id);
     int month = m_pack["month"].as<int>().unwrapOr(-1); //Monthly Only
     int year = m_pack["year"].as<int>().unwrapOr(-1); //Monthly Only
 	int mainPack = m_pack["mainPack"].as<int>().unwrapOr(-1); //Legacy Only
@@ -52,13 +89,13 @@ bool DPPackCell::init() {
 	auto progress = 0;
 	auto completedLvls = Mod::get()->getSavedValue<std::vector<int>>("completed-levels");
 	for (auto level : levelIDs) {
-		if (std::find(completedLvls.begin(), completedLvls.end(), level) != completedLvls.end()) {
+		if (DPUtils::isInVector(completedLvls, level)) {
 			progress += 1;
 		}
 	}
 
     // update status
-    auto hasRank = listSave.hasRank || ((progress >= reqLevels) && (reqLevels > -1));
+    auto hasRank = listSave.hasRank || ((progress >= reqLevels) && (reqLevels != -1));
 	auto completed = (progress == levelIDs.size());
 
 	if (m_index == "monthly" && progress >= 5) {
@@ -304,29 +341,6 @@ bool DPPackCell::init() {
 	cellMenu->setPosition({ 0.f, 0.f });
 
 	this->isInDifficulty = DPLevels::isLevelInDifficulty(this->levelID, this->m_id);
-	cellMenu->addChild(this->createViewButton());
-
-	if (m_id == 0 && m_index == "monthly") {
-		auto goldBG = CCLayerColor::create({ 255, 200, 0, 255 });
-		//if (Loader::get()->isModLoaded("alphalaneous.transparent_lists")) { goldBG->setOpacity(50); }
-		goldBG->setID("gold-bg");
-		goldBG->setContentHeight(50.f);
-		goldBG->setZOrder(-1);
-		this->addChild(goldBG);
-	}
-
-	this->addChild(cellMenu);
-	this->addChild(packText);
-	this->addChild(customPackText);
-	this->addChild(packSpr);
-	this->addChild(packPlusSpr);
-	this->addChild(packProgressBack);
-	this->addChild(progText);
-
-    return true;
-}
-
-CCMenuItemSpriteExtra* DPPackCell::createViewButton() {
 	bool isEditMenu = this->levelID != -1;
 	auto viewText = !isEditMenu ? "View" : this->isInDifficulty ? "Remove" : "Add";
 	auto viewSpr = ButtonSprite::create(
@@ -356,21 +370,31 @@ CCMenuItemSpriteExtra* DPPackCell::createViewButton() {
 	viewBtn->setID("view-btn");
 	viewBtn->setUserObject(new ListParameters(m_index, m_id));
 
-	return viewBtn;
+	cellMenu->addChild(viewBtn);
+
+	if (m_id == 0 && m_index == "monthly") {
+		auto goldBG = CCLayerColor::create({ 255, 200, 0, 255 });
+		//if (Loader::get()->isModLoaded("alphalaneous.transparent_lists")) { goldBG->setOpacity(50); }
+		goldBG->setID("gold-bg");
+		goldBG->setContentHeight(50.f);
+		goldBG->setZOrder(-1);
+		this->addChild(goldBG);
+	}
+
+	this->addChild(cellMenu);
+	this->addChild(packText);
+	this->addChild(customPackText);
+	this->addChild(packSpr);
+	this->addChild(packPlusSpr);
+	this->addChild(packProgressBack);
+	this->addChild(progText);
+
+	return true;
 }
 
-void DPPackCell::removeFromDifficulty(CCObject* sender) {
-	DPLevels::removeMainListLevel(this->m_id, this->levelID);
-	this->isInDifficulty = false;
-	this->getChildByIDRecursive("view-btn")->removeFromParentAndCleanup(true);
-	this->getChildByIDRecursive("view-menu")->addChild(this->createViewButton());
-}
-
-void DPPackCell::addToDifficulty(CCObject* sender) {
-	DPLevels::addMainListLevel(this->m_id, this->levelID);
-	this->isInDifficulty = true;
-	this->getChildByIDRecursive("view-btn")->removeFromParentAndCleanup(true);
-	this->getChildByIDRecursive("view-menu")->addChild(this->createViewButton());
+void DPPackCell::onEnter() {
+	this->recreate();
+	CCLayer::onEnter();
 }
 
 DPPackCell::~DPPackCell() {

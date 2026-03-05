@@ -62,7 +62,7 @@ bool DPRemovedLayer::init(int difficultyIndex) {
 
 	//info button
 	auto infoMenu = CCMenu::create();
-	auto infoButton = InfoAlertButton::create("Removed Info", "View all default GDDP levels you've removed.", 1.0f);
+	auto infoButton = InfoAlertButton::create("Removed Info", "Here are all default GDDP levels you've removed from this difficulty.", 1.0f);
 	infoMenu->setPosition({ 25, 25 });
 	infoMenu->setZOrder(2);
 	infoMenu->addChild(infoButton);
@@ -127,10 +127,27 @@ void DPRemovedLayer::loadLevels(int page) {
 	auto searchObject = GJSearchObject::create(SearchType::Type19, string::join(pageLevelStringIDs, ","));
 	auto storedLevels = levelManager->getStoredOnlineLevels(searchObject->getKey());
 
+	this->updateNoLevelsText(storedLevels);
 	if (storedLevels) {
 		DPRemovedLayer::loadLevelsFinished(storedLevels, "");
 	} else {
 		levelManager->getOnlineLevels(searchObject);
+	}
+}
+
+void DPRemovedLayer::updateNoLevelsText(CCArray* levels) {
+	if (!levels || levels->count() == 0) {
+		this->noLevelsText = CCLabelBMFont::create("No removed levels", "bigFont.fnt");
+		noLevelsText->setID("no-levels-text"_spr);
+		noLevelsText->setPosition(this->getContentSize() / 2 + ccp(0, 8));
+		noLevelsText->setZOrder(20);
+		this->addChild(noLevelsText);
+		return;
+	}
+
+	if (this->noLevelsText) {
+		this->noLevelsText->removeFromParentAndCleanup(true);
+		this->noLevelsText = nullptr;
 	}
 }
 
@@ -186,6 +203,8 @@ void DPRemovedLayer::loadLevelsFinished(CCArray* levels, const char*) {
 				
 		m_list->addChild(customText);
 	}
+
+	this->updateNoLevelsText(levels);
 }
 
 void DPRemovedLayer::pageRight(CCObject*) {

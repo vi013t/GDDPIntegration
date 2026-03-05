@@ -12,6 +12,7 @@
 #include "../CustomText.hpp"
 #include "../DPLevels.hpp"
 #include "DPRemovedLayer.hpp"
+#include "../popups/ProgressSettingsPopup.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -102,26 +103,51 @@ bool DPListLayer::init(const char* type, int id) {
 	infoMenu->setID("info-menu");
 	this->addChild(infoMenu);
 
-	//removed menu
+	// Editable main list elements
 	if (Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
-		auto removedMenu = CCMenu::create();
-		removedMenu->setPosition({ -25, 25 });
-		removedMenu->setID("removed-menu"_spr);
-		removedMenu->setZOrder(2);
 
-		auto removedSprite = CCSprite::createWithSpriteFrameName("GJ_trashBtn_001.png");
-		removedSprite->setScale(1);
+		// View removed levels button
+		{
+			auto removedMenu = CCMenu::create();
+			removedMenu->setPosition({ -25, 25 });
+			removedMenu->setID("removed-menu"_spr);
+			removedMenu->setZOrder(2);
 
-		auto removedButton = CCMenuItemSpriteExtra::create(
-			removedSprite,
-			this,
-			menu_selector(DPListLayer::viewRemoved)
-		);
-		removedButton->setID("removed-button"_spr);
-		removedButton->setPosition(ccp(removedMenu->getContentWidth(), 0));
-		removedMenu->addChild(removedButton);
+			auto removedSprite = CCSprite::createWithSpriteFrameName("GJ_trashBtn_001.png");
+			removedSprite->setScale(1);
 
-		this->addChild(removedMenu);
+			auto removedButton = CCMenuItemSpriteExtra::create(
+				removedSprite,
+				this,
+				menu_selector(DPListLayer::viewRemoved)
+			);
+			removedButton->setID("removed-button"_spr);
+			removedButton->setPosition(ccp(removedMenu->getContentWidth(), 0));
+			removedMenu->addChild(removedButton);
+
+			this->addChild(removedMenu);
+		}
+
+		// Progress settings
+		{
+			auto progressSettingsMenu = CCMenu::create();
+			progressSettingsMenu->setPosition({ size.width / 2 - 150, 12.f });
+			progressSettingsMenu->setID("progress-settings-menu"_spr);
+			progressSettingsMenu->setZOrder(6);
+
+			auto progressSettingsSprite = CCSprite::createWithSpriteFrameName("accountBtn_settings_001.png");
+			progressSettingsSprite->setScale(0.5);
+
+			auto progressSettingsButton = CCMenuItemSpriteExtra::create(
+				progressSettingsSprite,
+				this,
+				menu_selector(DPListLayer::openProgressSettings)
+			);
+			progressSettingsButton->setID("removed-button"_spr);
+			progressSettingsMenu->addChild(progressSettingsButton);
+
+			this->addChild(progressSettingsMenu);
+		}
 	}
 
 	//reload menu
@@ -224,7 +250,10 @@ void DPListLayer::updateProgressBar() {
 	int month = data[m_type][m_id]["month"].as<int>().unwrapOr(11);
 	int year = data[m_type][m_id]["year"].as<int>().unwrapOr(1987);
 	std::vector<int> levelIDs = data[m_type][m_id]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-	int reqLevels = data[m_type][m_id]["reqLevels"].as<int>().unwrapOr(-1);
+	int reqLevels = this->m_type == "main" ? DPLevels::getRequiredLevels(this->m_id) : data[m_type][m_id]["reqLevels"].as<int>().unwrapOr(-1);
+	if (reqLevels == -2) {
+		reqLevels = DPLevels::getMainListLevels(this->m_id).size();
+	}
 	std::string saveID = (m_type == "monthly") ? fmt::format("{}-{}", month, year) : data[m_type][m_id]["saveID"].asString().unwrapOr("null");
 
 	auto listSave = Mod::get()->getSavedValue<ListSaveFormat>(saveID);
@@ -353,7 +382,7 @@ void DPListLayer::loadLevels(int page) {
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	std::vector<int> levelIDs = {0};
 	if (m_type == "main") {
-		levelIDs = DPLevels::getMainListLevels(m_id, data["main"]);
+		levelIDs = DPLevels::getMainListLevels(m_id);
 	} else if (!data[m_type][m_id]["levelIDs"].isNull()) {
 		levelIDs = data[m_type][m_id]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
 	}
@@ -535,6 +564,10 @@ void DPListLayer::viewRemoved(CCObject* sender) {
 	CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, scene)); // push transition
 
 	return;
+}
+
+void DPListLayer::openProgressSettings(CCObject* sender) {
+	ProgressSettingsPopup::create(this->m_id)->show();
 }
 
 DPListLayer::~DPListLayer() {

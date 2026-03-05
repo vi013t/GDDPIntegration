@@ -17,6 +17,7 @@ protected:
 	int difficultyIndex;
 	int page;
 	std::vector<int> levelIDs;
+	CCLabelBMFont* noLevelsText = nullptr;
 
 	virtual bool init(int difficultyIndex);
 	void backButton(CCObject*); //when you press back
@@ -32,4 +33,5 @@ public:
 	void loadLevelsFinished(CCArray* levels, const char* key, int) override {
 		loadLevelsFinished(levels, key);
 	}
+	void updateNoLevelsText(CCArray* levels);
 };

@@ -14,14 +14,15 @@ project(GDDPIntegration VERSION 1.0.0)
 add_library(${PROJECT_NAME} SHARED
     #src/main.cpp
     # Add your cpp files here
+    src/DPUtils.cpp
 	src/DPLevels.cpp
+	src/popups/ProgressSettingsPopup.cpp
 	src/menus/DPRemovedLayer.cpp 
     src/hooks/CreatorLayer.cpp
     src/hooks/LevelInfoLayer.cpp
     src/hooks/LevelCell.cpp
     src/hooks/PlayLayer.cpp
     src/popups/StatsPopup.cpp
-    src/DPUtils.cpp
     src/menus/DPListLayer.cpp
     src/menus/DPLayer.cpp
     src/menus/DPPackCell.cpp

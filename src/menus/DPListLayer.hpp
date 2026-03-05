@@ -36,6 +36,7 @@ public:
 	void pageRight(CCObject*);
 	void pageLeft(CCObject*);
 	void viewRemoved(CCObject* sender);
+	void openProgressSettings(CCObject* sender);
 
 	void updateProgressBar();
 	void updateSave();

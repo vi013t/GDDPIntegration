@@ -13,7 +13,9 @@ protected:
 	int levelID;
 	bool isInDifficulty = false;
 
-    virtual bool init();
+    virtual bool init() override;
+    virtual void onEnter() override;
+
 public:
     static DPPackCell* create(matjson::Value data, std::string index, int id);
     static DPPackCell* create(matjson::Value data, std::string index, int id, int levelID);
@@ -21,4 +23,10 @@ public:
 	void addToDifficulty(CCObject* sender);
     virtual ~DPPackCell();
 	CCMenuItemSpriteExtra* createViewButton();
+	void updateDPLayer();
+
+	/*
+	 * Recreates this pack cell from scratch, ensuring all elements are up to date.
+	 */
+	bool recreate();
 };

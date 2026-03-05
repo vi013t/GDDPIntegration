@@ -22,6 +22,7 @@
 #include "../RecommendedUtils.hpp"
 #include "DPPackCell.hpp"
 #include "../DPLevels.hpp"
+#include "../DPUtils.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -152,14 +153,20 @@ void DPLayer::reloadData(bool isInit) {
 					auto glm = GameLevelManager::sharedState();
 					auto glmCompletedLvls = glm->getCompletedLevels(false);
 
+					auto allMainLevels = DPLevels::getAllMainListLevels();
 					if (glmCompletedLvls->count() > 0) {
 						for (int i = 0; i < glmCompletedLvls->indexOfObject(glmCompletedLvls->lastObject()); i++) {
 							auto lvl = static_cast<GJGameLevel*>(glmCompletedLvls->objectAtIndex(i));
 							auto lvlID = lvl->m_levelID.value();
-
-							if (m_data["level-data"].contains(std::to_string(lvlID)) && lvl->m_normalPercent.value() == 100) {
+							if (
+								(
+									this->m_data["level-data"].contains(std::to_string(lvlID)) ||
+									(this->m_currentTab == 0 && DPUtils::isInVector(allMainLevels, lvlID))
+								) && 
+								lvl->m_normalPercent.value() == 100
+							) {
 								auto completedLvls = Mod::get()->getSavedValue<std::vector<int>>("completed-levels");
-								if (std::find(completedLvls.begin(), completedLvls.end(), lvlID) == completedLvls.end()) {
+								if (!DPUtils::isInVector(completedLvls, lvlID)) {
 									completedLvls.insert(completedLvls.begin(), lvlID);
 									Mod::get()->setSavedValue<std::vector<int>>("completed-levels", completedLvls);
 								}
