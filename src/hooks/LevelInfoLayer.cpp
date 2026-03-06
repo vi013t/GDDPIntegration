@@ -99,6 +99,7 @@ class $modify(DemonProgression, LevelInfoLayer) {
 		if (!renderCustomGDDPLevel) return true;
 
 		if (!inGDDP && inMainList) difficultyIndex = difficulties[difficulties.size() - 1];
+		log::info("{} is {} difficulty ({})", this->m_level->m_levelName, data["main"][difficultyIndex]["saveID"].asString().unwrap(), difficultyIndex);
 
 			//if not on the GDDP or GDDL, return
 			/*if (Mod::get()->getSettingValue<bool>("all-demons-rated") && this->m_level->m_stars == 10 && ListManager::getSpriteName(this->m_level) == "") {
@@ -115,95 +116,8 @@ class $modify(DemonProgression, LevelInfoLayer) {
 			}*/
 
 			//if a gddp level that's only in a monthly pack, return
-			if (Mod::get()->getSettingValue<bool>("hide-monthly-outside") && !Mod::get()->getSavedValue<bool>("in-gddp")) {
-
-				//check monthly, if check returns with nothing, skip the rest
-				auto isMonthly = false;
-				for (int i = 0; i < data["monthly"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
-					auto monthlyPack = data["monthly"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-					if (std::find(monthlyPack.begin(), monthlyPack.end(), this->m_level->m_levelID.value()) != monthlyPack.end()) {
-						isMonthly = true;
-						break;
-					}	
-				}
-				
-				if (isMonthly) {
-					auto uniqueMonthly = true; //false = level is in main/legacy/bonus, so don't return if false
-
-					//check main
-					for (int i = 0; i < data["main"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
-						auto pack = data["main"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-						if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
-							uniqueMonthly = false;
-							break;
-						}
-					}
-
-					//check legacy
-					if (uniqueMonthly) {
-						for (int i = 0; i < data["legacy"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
-							auto pack = data["legacy"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-							if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
-								uniqueMonthly = false;
-								break;
-							}
-						}
-					}
-
-					//check bonus
-					if (uniqueMonthly) {
-						for (int i = 0; i < data["bonus"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
-							auto pack = data["bonus"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-							if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
-								uniqueMonthly = false;
-								break;
-							}
-						}
-					}
-
-					if (uniqueMonthly) { return true; }
-				}
-			}
-
-			//if a gddp level that's only in a bonus pack, return
-			if (Mod::get()->getSettingValue<bool>("hide-bonus-outside") && !Mod::get()->getSavedValue<bool>("in-gddp")) {
-
-				//check bonus, if check returns with nothing, skip the rest
-				auto isBonus = false;
-				for (int i = 0; i < data["bonus"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
-					auto bonusPack = data["bonus"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-					if (std::find(bonusPack.begin(), bonusPack.end(), this->m_level->m_levelID.value()) != bonusPack.end()) {
-						isBonus = true;
-						break;
-					}	
-				}
-				
-				if (isBonus) {
-					auto uniqueBonus = true; //false = level is in main/legacy, so don't return if false
-
-					//check main
-					for (int i = 0; i < data["main"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
-						auto pack = data["main"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-						if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
-							uniqueBonus = false;
-							break;
-						}
-					}
-
-					//check legacy
-					if (uniqueBonus) {
-						for (int i = 0; i < data["legacy"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
-							auto pack = data["legacy"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
-							if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
-								uniqueBonus = false;
-								break;
-							}
-						}
-					}
-
-					if (uniqueBonus) { return true; }
-				}
-			}
+			if (this->isOnlyInMonthly() && !inMainList) return true;
+			if (this->isOnlyBonus() && !inMainList) return true;
 
 			//if gauntlet level, return
 			if (this->m_level->m_gauntletLevel || this->m_level->m_gauntletLevel2) {
@@ -255,7 +169,7 @@ class $modify(DemonProgression, LevelInfoLayer) {
 			auto levelID = std::to_string(this->m_level->m_levelID.value());
 
 			if (data["level-data"].contains(levelID)) {
-				if (!data["level-data"][levelID]["difficulty"].isNull()) { difficultyIndex = data["level-data"][levelID]["difficulty"].as<int>().unwrapOrDefault(); }
+				if (!data["level-data"][levelID]["difficulty"].isNull() && !inMainList) { difficultyIndex = data["level-data"][levelID]["difficulty"].as<int>().unwrapOrDefault(); }
 				if (!data["level-data"][levelID]["skillsets"].isNull()) { skillsets = data["level-data"][levelID]["skillsets"].as<std::vector<std::string>>().unwrapOrDefault(); }
 
 				if (this->m_level->m_normalPercent.value() == 100) {
@@ -552,6 +466,103 @@ class $modify(DemonProgression, LevelInfoLayer) {
 
 
 		return true;
+	}
+
+	bool isOnlyBonus() {
+		if (!Mod::get()->getSettingValue<bool>("hide-bonus-outside") || Mod::get()->getSavedValue<bool>("in-gddp")) return false;
+		auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
+
+		//check bonus, if check returns with nothing, skip the rest
+		auto isBonus = false;
+		for (int i = 0; i < data["bonus"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
+			auto bonusPack = data["bonus"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+			if (std::find(bonusPack.begin(), bonusPack.end(), this->m_level->m_levelID.value()) != bonusPack.end()) {
+				isBonus = true;
+				break;
+			}	
+		}
+		
+		if (isBonus) {
+			auto uniqueBonus = true; //false = level is in main/legacy, so don't return if false
+
+			//check main
+			for (int i = 0; i < data["main"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
+				auto pack = data["main"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+				if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
+					uniqueBonus = false;
+					break;
+				}
+			}
+
+			//check legacy
+			if (uniqueBonus) {
+				for (int i = 0; i < data["legacy"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
+					auto pack = data["legacy"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+					if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
+						uniqueBonus = false;
+						break;
+					}
+				}
+			}
+
+			if (uniqueBonus) { return true; }
+		}
+
+		return false;
+	}
+
+	bool isOnlyInMonthly() {
+		if (!Mod::get()->getSettingValue<bool>("hide-monthly-outside") ||Mod::get()->getSavedValue<bool>("in-gddp")) return false;
+		auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
+
+		//check monthly, if check returns with nothing, skip the rest
+		auto isMonthly = false;
+		for (int i = 0; i < data["monthly"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
+			auto monthlyPack = data["monthly"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+			if (std::find(monthlyPack.begin(), monthlyPack.end(), this->m_level->m_levelID.value()) != monthlyPack.end()) {
+				isMonthly = true;
+				break;
+			}	
+		}
+		
+		if (isMonthly) {
+			auto uniqueMonthly = true; //false = level is in main/legacy/bonus, so don't return if false
+
+			//check main
+			for (int i = 0; i < data["main"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
+				auto pack = data["main"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+				if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
+					uniqueMonthly = false;
+					break;
+				}
+			}
+
+			//check legacy
+			if (uniqueMonthly) {
+				for (int i = 0; i < data["legacy"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
+					auto pack = data["legacy"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+					if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
+						uniqueMonthly = false;
+						break;
+					}
+				}
+			}
+
+			//check bonus
+			if (uniqueMonthly) {
+				for (int i = 0; i < data["bonus"].as<std::vector<matjson::Value>>().unwrapOr(std::vector<matjson::Value>()).size(); i++) {
+					auto pack = data["bonus"][i]["levelIDs"].as<std::vector<int>>().unwrapOrDefault();
+					if (std::find(pack.begin(), pack.end(), this->m_level->m_levelID.value()) != pack.end()) {
+						uniqueMonthly = false;
+						break;
+					}
+				}
+			}
+
+			if (uniqueMonthly) { return true; }
+		}
+
+		return false;
 	}
 
 	void updateLabelValues() {

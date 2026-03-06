@@ -71,8 +71,8 @@ class $modify(DemonProgression, LevelCell) {
 		// If not in a GDDP menu, the difficulty pack should just be the hardest one that level belongs to.
 		if (!inGDDP && inMainList) difficultyIndex = difficulties[difficulties.size() - 1];
 
-		if (this->isOnlyInMonthlyPack()) return;
-		if (this->isOnlyInBonus()) return;
+		if (this->isOnlyInMonthlyPack() && !inMainList) return;
+		if (this->isOnlyInBonus() && !inMainList) return;
 
 		// More definitions
 		auto type = Mod::get()->getSavedValue<std::string>("current-pack-type", "main");
