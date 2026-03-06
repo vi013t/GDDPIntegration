@@ -66,9 +66,10 @@ class $modify(DemonProgression, LevelCell) {
 
 		//log::info("{}", inGDDP);
 
-		if (inGDDP && data["level-data"].contains(std::to_string(this->m_level->m_levelID.value()))) {
+		auto difficultyIndex = Mod::get()->getSavedValue<int>("current-difficulty-index", 0);
+		auto inMainList = DPUtils::isInVector<int>(MainListEditor::getMainListLevels(difficultyIndex), this->m_level->m_levelID);
 
-			auto difficultyIndex = Mod::get()->getSavedValue<int>("current-difficulty-index", 0);
+		if (inGDDP && (data["level-data"].contains(std::to_string(this->m_level->m_levelID.value())) || inMainList)) {
 
 			//if not on the GDDP or GDDL, return
 			/*if (Mod::get()->getSettingValue<bool>("all-demons-rated") && this->m_level->m_stars == 10 && ListManager::getSpriteName(this->m_level) == "") {
