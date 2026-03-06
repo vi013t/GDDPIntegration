@@ -132,4 +132,16 @@ public:
 	 * @return The amount of required levels for that pack
 	 */
 	static int getRequiredLevels(int difficultyIndex);
+
+	/**
+	 * Returns a list of the main list difficulty packs that a level belongs to. Normally levels can only
+	 * belong to one difficulty pack (or none), but with the `enable-main-list-editing` setting enabled,
+	 * levels can belong to multiple difficulty packs.
+	 *
+	 * @param levelID The level ID to get the difficulty packs of. If this is not a valid level ID, an
+	 * empty vector will be returned.
+	 *
+	 * @return A list of the main list difficulty packs that the given level is in.
+	 */
+	static std::vector<int> getDifficultyPacks(int levelID);
 };

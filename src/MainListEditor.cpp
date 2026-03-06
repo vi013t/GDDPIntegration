@@ -63,7 +63,7 @@ std::vector<int> MainListEditor::getAllMainListLevels() {
 bool MainListEditor::isLevelInDifficulty(int levelID, int difficulty) {
 	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
 	auto levels = getMainListLevels(difficulty);
-	return std::find(levels.begin(), levels.end(), levelID) != levels.end();
+	return DPUtils::isInVector(levels, levelID);
 }
 
 void MainListEditor::addMainListLevel(int difficultyIndex, int levelID) {
@@ -187,4 +187,16 @@ int MainListEditor::getRequiredLevels(int difficultyIndex) {
 
 	setRequiredLevels(difficultyIndex, amount);
 	return amount;
+}
+
+std::vector<int> MainListEditor::getDifficultyPacks(int levelID) {
+	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
+	auto difficulties = data["main"].asArray().unwrap().size();
+	auto levelDifficulties = std::vector<int>();
+	for (int difficulty = 0; difficulty < difficulties; difficulty++) {
+		if (MainListEditor::isLevelInDifficulty(levelID, difficulty)) {
+			levelDifficulties.push_back(difficulty);
+		}
+	}
+	return levelDifficulties;
 }
