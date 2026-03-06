@@ -10,6 +10,7 @@
 #include "../CustomText.hpp"
 #include "../popups/OpenStartposPopup.hpp"
 #include "../menus/DPLayer.hpp"
+#include "../MainListEditor.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -71,27 +72,33 @@ class $modify(DemonProgression, LevelInfoLayer) {
 		}
 
 		// add "remove from gddp" button
-		// todo: what if a level is in multiple difficulty lists?
 		if (Mod::get()->getSettingValue<bool>("enable-main-list-editing")) {
-			auto removeSprite = CircleButtonSprite::createWithSpriteFrameName("DP_Logo.png"_spr);
-			removeSprite->setScale(1);
+			auto editGDDPSprite = CircleButtonSprite::createWithSpriteFrameName("DP_Logo.png"_spr);
+			editGDDPSprite->setScale(1);
 
-			auto removeButton = CCMenuItemSpriteExtra::create(
-				removeSprite,
+			auto editGDDPButton = CCMenuItemSpriteExtra::create(
+				editGDDPSprite,
 				this,
 				menu_selector(DemonProgression::openAddOrRemoveToGDDPPopup)
 			);
-			removeButton->setID("remove-from-gddp-button"_spr);
-			this->getChildByID("left-side-menu")->addChildAtPosition(removeButton, Anchor::Top, { 0, 8 });
+			editGDDPButton->setID("remove-from-gddp-button"_spr);
+			this->getChildByID("left-side-menu")->addChildAtPosition(editGDDPButton, Anchor::Top, { 0, 8 });
 		}
 
 		bool inGDDP = Mod::get()->getSavedValue<bool>("in-gddp");
+		bool showOutsideGDDP = Mod::get()->getSettingValue<bool>("show-outside-menus");
+		bool showOnlyMainList = Mod::get()->getSettingValue<bool>("show-only-main-list-faces");
+		auto difficultyIndex = Mod::get()->getSavedValue<int>("current-difficulty-index", 0);
 
-		if (Mod::get()->getSettingValue<bool>("show-outside-menus")) {
-			inGDDP = true;
-		}
+		auto difficulties = MainListEditor::getDifficultyPacks(this->m_level->m_levelID);
+		auto inMainList = !difficulties.empty();
+		auto inDefaultGDDP = data["level-data"].contains(std::to_string(this->m_level->m_levelID.value()));
+		if (showOnlyMainList) inDefaultGDDP = MainListEditor::isInDefaultGDDPMainList(this->m_level->m_levelID);
+		auto renderCustomGDDPLevel = (inGDDP || showOutsideGDDP) && ((inDefaultGDDP && inGDDP) || inMainList);
 
-		if (inGDDP && data["level-data"].contains(std::to_string(this->m_level->m_levelID.value()))) {
+		if (!renderCustomGDDPLevel) return true;
+
+		if (!inGDDP && inMainList) difficultyIndex = difficulties[difficulties.size() - 1];
 
 			//if not on the GDDP or GDDL, return
 			/*if (Mod::get()->getSettingValue<bool>("all-demons-rated") && this->m_level->m_stars == 10 && ListManager::getSpriteName(this->m_level) == "") {
@@ -244,12 +251,11 @@ class $modify(DemonProgression, LevelInfoLayer) {
 				return true;
 			}
 
-			int gddpDiff = 0;
 			std::vector<std::string> skillsets = {};
 			auto levelID = std::to_string(this->m_level->m_levelID.value());
 
 			if (data["level-data"].contains(levelID)) {
-				if (!data["level-data"][levelID]["difficulty"].isNull()) { gddpDiff = data["level-data"][levelID]["difficulty"].as<int>().unwrapOrDefault(); }
+				if (!data["level-data"][levelID]["difficulty"].isNull()) { difficultyIndex = data["level-data"][levelID]["difficulty"].as<int>().unwrapOrDefault(); }
 				if (!data["level-data"][levelID]["skillsets"].isNull()) { skillsets = data["level-data"][levelID]["skillsets"].as<std::vector<std::string>>().unwrapOrDefault(); }
 
 				if (this->m_level->m_normalPercent.value() == 100) {
@@ -358,7 +364,7 @@ class $modify(DemonProgression, LevelInfoLayer) {
 				auto lvlName = typeinfo_cast<CCLabelBMFont*>(this->getChildByID("title-label"));
 
 				auto customLvlName = CustomText::create(lvlName->getString());
-				customLvlName->addEffectsFromProperties(DPTextEffects[data["main"][gddpDiff]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
+				customLvlName->addEffectsFromProperties(DPTextEffects[data["main"][difficultyIndex]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
 				customLvlName->setPosition(lvlName->getPosition());
 				customLvlName->setAnchorPoint(lvlName->getAnchorPoint());
 				customLvlName->setScale(lvlName->getScale());
@@ -382,8 +388,8 @@ class $modify(DemonProgression, LevelInfoLayer) {
 				sprite = ListManager::getSpriteName(this->m_level);
 				plusSprite = fmt::format("{}Plus", sprite);
 			}*/
-			sprite = data["main"][gddpDiff]["sprite"].asString().unwrapOr("DP_Unknown");
-			plusSprite = data["main"][gddpDiff]["plusSprite"].asString().unwrapOr("DP_Unknown");
+			sprite = data["main"][difficultyIndex]["sprite"].asString().unwrapOr("DP_Unknown");
+			plusSprite = data["main"][difficultyIndex]["plusSprite"].asString().unwrapOr("DP_Unknown");
 
 			//fallbacks
 			if (CCSprite::createWithSpriteFrameName(Mod::get()->expandSpriteName(fmt::format("{}.png", sprite)).data()) == nullptr) {
@@ -417,8 +423,8 @@ class $modify(DemonProgression, LevelInfoLayer) {
 				this->addChild(customSpr);
 
 				//label
-				auto demonLabelName = CCLabelBMFont::create(data["main"][gddpDiff]["name"].asString().unwrapOr("???").c_str(), "bigFont.fnt");
-				auto customDemonLabelName = CustomText::create(data["main"][gddpDiff]["name"].asString().unwrapOr("???"));
+				auto demonLabelName = CCLabelBMFont::create(data["main"][difficultyIndex]["name"].asString().unwrapOr("???").c_str(), "bigFont.fnt");
+				auto customDemonLabelName = CustomText::create(data["main"][difficultyIndex]["name"].asString().unwrapOr("???"));
 				auto demonLabel = CCLabelBMFont::create("Demon", "bigFont.fnt");
 				auto customDemonLabel = CustomText::create("Demon");
 
@@ -446,8 +452,8 @@ class $modify(DemonProgression, LevelInfoLayer) {
 				customDemonLabel->setScale(0.35f);
 				customDemonLabel->setZOrder(5);
 
-				customDemonLabelName->addEffectsFromProperties(DPTextEffects[data["main"][gddpDiff]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
-				customDemonLabel->addEffectsFromProperties(DPTextEffects[data["main"][gddpDiff]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
+				customDemonLabelName->addEffectsFromProperties(DPTextEffects[data["main"][difficultyIndex]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
+				customDemonLabel->addEffectsFromProperties(DPTextEffects[data["main"][difficultyIndex]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
 
 				if (Mod::get()->getSettingValue<bool>("custom-demon-labels")) {
 					this->addChild(customDemonLabelName);
@@ -464,7 +470,7 @@ class $modify(DemonProgression, LevelInfoLayer) {
 					auto recommendedSpr = CCSprite::createWithSpriteFrameName("DP_RecommendGlow.png"_spr);
 					//recommendedSpr->setPosition({ 37.f, 37.f });
 					recommendedSpr->setAnchorPoint({0.f, 0.f});
-					if (gddpDiff >= 11) { recommendedSpr->setPositionY(3.f); }
+					if (difficultyIndex >= 11) { recommendedSpr->setPositionY(3.f); }
 					recommendedSpr->setZOrder(6);
 					customSpr->addChild(recommendedSpr);
 				}
@@ -544,7 +550,6 @@ class $modify(DemonProgression, LevelInfoLayer) {
 				betweenDiffSpr->setVisible(false);
 			}*/
 
-		}
 
 		return true;
 	}

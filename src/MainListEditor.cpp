@@ -200,3 +200,14 @@ std::vector<int> MainListEditor::getDifficultyPacks(int levelID) {
 	}
 	return levelDifficulties;
 }
+
+bool MainListEditor::isInDefaultGDDPMainList(int levelID) { 
+	auto data = Mod::get()->getSavedValue<matjson::Value>("cached-data");
+	for (auto object : data["main"].asArray().unwrap()) {
+		auto levels = DPUtils::vectorMap<int>(object["levelIDs"].asArray().unwrap(), [](matjson::Value id) { return (int) id.asInt().unwrap(); });
+		if (DPUtils::isInVector(levels, levelID)) {
+			return true;
+		}
+	}
+	return false;
+}

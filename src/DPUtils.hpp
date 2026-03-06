@@ -51,7 +51,7 @@ public:
 		return heapVector;
 	}
 
-	template <typename Result, typename MapFunction, typename Operand> 
+	template <typename Result, typename Operand, typename MapFunction> 
 	requires std::invocable<MapFunction, Operand> && std::same_as<std::invoke_result_t<MapFunction, Operand>, Result>
 	static std::vector<Result> vectorMap(const std::vector<Operand> &vector, MapFunction map) {
 		std::vector<Result> result;

@@ -147,6 +147,13 @@
 			"type": "bool",
 			"default": false,
 			"enable-if": "custom-difficulty-faces"
+		},		
+		"show-only-main-list-faces": {
+			"name": "Show Only Main List Faces",
+			"description": "Show only main list faces outside of the GDDP menu.",
+			"type": "bool",
+			"default": false,
+			"enable-if": "show-outside-menus"
 		},
 		"replace-epic": {
 			"name": "Replace Epic Fire",

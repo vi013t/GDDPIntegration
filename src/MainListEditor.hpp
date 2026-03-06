@@ -144,4 +144,5 @@ public:
 	 * @return A list of the main list difficulty packs that the given level is in.
 	 */
 	static std::vector<int> getDifficultyPacks(int levelID);
+	static bool isInDefaultGDDPMainList(int levelID);
 };

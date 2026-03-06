@@ -57,12 +57,14 @@ class $modify(DemonProgression, LevelCell) {
 
 		bool inGDDP = Mod::get()->getSavedValue<bool>("in-gddp");
 		bool showOutsideGDDP = Mod::get()->getSettingValue<bool>("show-outside-menus");
+		bool showOnlyMainList = Mod::get()->getSettingValue<bool>("show-only-main-list-faces");
 		auto difficultyIndex = Mod::get()->getSavedValue<int>("current-difficulty-index", 0);
 
 		// Check if this is a progression level
 		auto difficulties = MainListEditor::getDifficultyPacks(this->m_level->m_levelID);
 		auto inMainList = !difficulties.empty();
 		auto inDefaultGDDP = data["level-data"].contains(std::to_string(this->m_level->m_levelID.value()));
+		if (showOnlyMainList) inDefaultGDDP = MainListEditor::isInDefaultGDDPMainList(this->m_level->m_levelID);
 		auto renderCustomGDDPLevel = (inGDDP || showOutsideGDDP) && ((inDefaultGDDP && inGDDP) || inMainList);
 		if (!renderCustomGDDPLevel) return;
 
