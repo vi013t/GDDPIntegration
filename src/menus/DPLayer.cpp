@@ -212,6 +212,7 @@ void DPLayer::reloadData(bool isInit) {
 
 void DPLayer::openList(CCObject* sender) {
 	auto parameters = static_cast<ListParameters*>(static_cast<CCNode*>(sender)->getUserObject());
+	Mod::get()->setSavedValue<int>("current-difficulty-index", parameters->m_index);
 
 	auto scene = CCScene::create(); // creates the scene
 	auto dpLayer = DPListLayer::create(parameters->m_type.c_str(), parameters->m_index); //creates the layer

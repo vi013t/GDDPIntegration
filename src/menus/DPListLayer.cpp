@@ -13,6 +13,7 @@
 #include "../MainListEditor.hpp"
 #include "DPRemovedLayer.hpp"
 #include "../popups/ProgressSettingsPopup.hpp"
+#include "../DPUtils.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -568,6 +569,18 @@ void DPListLayer::viewRemoved(CCObject* sender) {
 
 void DPListLayer::openProgressSettings(CCObject* sender) {
 	ProgressSettingsPopup::create(this->m_id)->show();
+}
+
+std::vector<int> DPListLayer::getLevels() {
+	return DPUtils::vectorMap<int>(this->m_IDs, [](std::string id) { return numFromString<int>(id).unwrap(); });
+}
+
+void DPListLayer::removeLevel(int levelID) {
+	DPUtils::vectorRemove(this->m_IDs, std::to_string(levelID));
+}
+
+int DPListLayer::getDifficultyIndex() {
+	return this->m_id;
 }
 
 DPListLayer::~DPListLayer() {

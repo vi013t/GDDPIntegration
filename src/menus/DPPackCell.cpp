@@ -95,7 +95,7 @@ bool DPPackCell::recreate() {
 	}
 
     // update status
-    auto hasRank = listSave.hasRank || ((progress >= reqLevels) && (reqLevels != -1));
+    auto hasRank = Mod::get()->getSettingValue<bool>("enable-main-list-editing") || listSave.hasRank || ((progress >= reqLevels) && (reqLevels != -1));
 	auto completed = (progress == levelIDs.size());
 
 	if (m_index == "monthly" && progress >= 5) {
@@ -112,7 +112,7 @@ bool DPPackCell::recreate() {
 
     // get full name
     std::string fullName = name + 
-    ((m_index == "main" && hasRank) ? "+ " :" ") + 
+    ((m_index == "main" && hasRank && !Mod::get()->getSettingValue<bool>("enable-main-list-editing")) ? "+ " :" ") + 
     ((m_index == "main" || m_index == "legacy") ? "Demons" : "") +
     ((m_index == "monthly" && listSave.progress > 5) ? " +" : "");
 
@@ -342,35 +342,67 @@ bool DPPackCell::recreate() {
 
 	auto isInDifficulty = MainListEditor::isLevelInDifficulty(this->levelID, this->m_id);
 	bool isEditMenu = this->levelID != -1;
-	auto viewText = !isEditMenu ? "View" : isInDifficulty ? "Remove" : "Add";
-	auto viewSpr = ButtonSprite::create(
-		viewText, 
+	
+	auto buttonWidth = 150;
+	auto buttonScale = 0.4;
+	if (isEditMenu) {
+		auto viewSprite = ButtonSprite::create(
+			"View", 
+			"bigFont.fnt", 
+			"GJ_button_02.png",
+			1
+		);
+		viewSprite->setScale(buttonScale);
+		viewSprite->setContentWidth(buttonWidth);
+		viewSprite->m_BGSprite->setContentWidth(buttonWidth);
+		viewSprite->m_BGSprite->setPositionX(67);
+		viewSprite->m_label->setPositionX(67);
+			
+		auto viewButton = CCMenuItemSpriteExtra::create(
+			viewSprite, 
+			this, 
+			menu_selector(DPLayer::openList)
+		);
+		viewButton->setPosition({ 307, 35.f });
+		viewButton->setContentWidth(buttonWidth * buttonScale);
+		viewButton->setID("view-btn");
+		viewButton->setUserObject(new ListParameters(m_index, m_id));
+
+		cellMenu->addChild(viewButton);
+	}
+
+	auto actionText = !isEditMenu ? "View" : isInDifficulty ? "Remove" : "Add";
+	auto actionSprite = ButtonSprite::create(
+		actionText, 
 		"bigFont.fnt", 
 		!isEditMenu || !isInDifficulty ? "GJ_button_01.png" : "GJ_button_06.png",
-		!isEditMenu ? 0.6f : 0.4f
+		!isEditMenu ? 0.6f : 1
 	);
-	viewSpr->m_BGSprite->setContentSize({ 66.f, 30.f });
 	if (isEditMenu) {
-		viewSpr->setContentSize({ 68, 36 });
-		viewSpr->setPosition({ 39, 18.25 });
-		viewSpr->m_BGSprite->setPosition({ 34, 18.25 });
-		viewSpr->m_label->setPosition({ 33, 20 });
+		actionSprite->setScale(buttonScale);
+		actionSprite->setContentWidth(buttonWidth);
+		actionSprite->m_BGSprite->setContentWidth(buttonWidth);
+		actionSprite->m_BGSprite->setPositionX(67);
+		actionSprite->m_label->setPositionX(67);
+	} else {
+		actionSprite->m_BGSprite->setContentSize({ 66.f, 30.f });
 	}
 		
-	auto viewBtn = CCMenuItemSpriteExtra::create(
-		viewSpr, 
+	auto actionButton = CCMenuItemSpriteExtra::create(
+		actionSprite, 
 		this, 
 		!isEditMenu ? menu_selector(DPLayer::openList) : isInDifficulty ? menu_selector(DPPackCell::removeFromDifficulty) : menu_selector(DPPackCell::addToDifficulty)
 	);
 	if (isEditMenu) {
-		viewBtn->setPosition({ 307, 25.f });
+		actionButton->setPosition({ 307, 15.f });
+		actionButton->setContentWidth(buttonWidth * buttonScale);
 	} else {
-		viewBtn->setPosition({ 320.f, 25.f });
+		actionButton->setPosition({ 320.f, 25.f });
 	}
-	viewBtn->setID("view-btn");
-	viewBtn->setUserObject(new ListParameters(m_index, m_id));
+	actionButton->setID("action-btn");
+	actionButton->setUserObject(new ListParameters(m_index, m_id));
 
-	cellMenu->addChild(viewBtn);
+	cellMenu->addChild(actionButton);
 
 	if (m_id == 0 && m_index == "monthly") {
 		auto goldBG = CCLayerColor::create({ 255, 200, 0, 255 });

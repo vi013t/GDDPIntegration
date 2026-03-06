@@ -13,6 +13,8 @@ clean-cache:
 	rm -rf $(DATA_LOCATION)/*
 
 build-with-cache:
+	mkdir -p .cache/mod-data
+	rm -rf .cache/mod-data/*
 	cp -r $(DATA_LOCATION)/* .cache/mod-data
 	$(MAKE) build
 	mkdir -p $(DATA_LOCATION)

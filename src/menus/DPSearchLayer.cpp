@@ -6,7 +6,6 @@
 #include <Geode/loader/Event.hpp>
 #include <Geode/utils/JsonValidation.hpp>
 
-#include "DPLayer.hpp"
 #include "DPSearchLayer.hpp"
 
 //geode namespace

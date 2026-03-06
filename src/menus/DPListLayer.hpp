@@ -49,4 +49,8 @@ public:
 	void loadLevelsFailed(const char* key, int) override {
 		loadLevelsFailed(key);
 	}
+
+	std::vector<int> getLevels();
+	void removeLevel(int levelID);
+	int getDifficultyIndex();
 };

@@ -6,7 +6,9 @@
 #include "../menus/DPLayer.hpp"
 #include "../CustomText.hpp"
 #include "../MainListEditor.hpp"
-//#include "../ListManager.hpp"
+#include "../menus/DPListLayer.hpp"
+#include "../DPUtils.hpp"
+#include "../LevelDownloader.hpp"
 
 //geode namespace
 using namespace geode::prelude;
@@ -65,6 +67,8 @@ class $modify(DemonProgression, LevelCell) {
 		//log::info("{}", inGDDP);
 
 		if (inGDDP && data["level-data"].contains(std::to_string(this->m_level->m_levelID.value()))) {
+
+			auto difficultyIndex = Mod::get()->getSavedValue<int>("current-difficulty-index", 0);
 
 			//if not on the GDDP or GDDL, return
 			/*if (Mod::get()->getSettingValue<bool>("all-demons-rated") && this->m_level->m_stars == 10 && ListManager::getSpriteName(this->m_level) == "") {
@@ -200,12 +204,10 @@ class $modify(DemonProgression, LevelCell) {
 				return;
 			}
 
-			int gddpDiff = 0;
 			std::vector<std::string> skillsets = {};
 			auto levelID = std::to_string(this->m_level->m_levelID.value());
 
 			if (data["level-data"].contains(levelID)) {
-				if (!data["level-data"][levelID]["difficulty"].isNull()) { gddpDiff = data["level-data"][levelID]["difficulty"].as<int>().unwrapOr(0); }
 				if (!data["level-data"][levelID]["skillsets"].isNull()) { skillsets = data["level-data"][levelID]["skillsets"].as<std::vector<std::string>>().unwrapOrDefault(); }
 
 				if (this->m_level->m_normalPercent.value() == 100) {
@@ -242,7 +244,7 @@ class $modify(DemonProgression, LevelCell) {
 						false, 
 						"bigFont.fnt", 
 						inRemovedList ? "GJ_button_02.png" : "GJ_button_06.png", 
-						20.0f, 
+						23.0f, 
 						0.2f
 					),
 					this,
@@ -254,8 +256,7 @@ class $modify(DemonProgression, LevelCell) {
 					levelIDs.push_back(id.asInt().unwrap());
 				}
 
-				log::info("gddpdif: {}", gddpDiff);
-				removeButton->setTag(gddpDiff);
+				removeButton->setTag(difficultyIndex);
 				removeButton->setID("remove-button"_spr);
 				removeMenu->addChild(removeButton);
 
@@ -341,9 +342,8 @@ class $modify(DemonProgression, LevelCell) {
 			//fancy level name
 			if (Mod::get()->getSettingValue<bool>("custom-level-name") && this->getChildByID("main-layer")->getChildByID("level-name")) {
 				auto lvlName = typeinfo_cast<CCLabelBMFont*>(this->getChildByID("main-layer")->getChildByID("level-name"));
-
 				auto customLvlName = CustomText::create(lvlName->getString());
-				customLvlName->addEffectsFromProperties(DPTextEffects[data["main"][gddpDiff]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
+				customLvlName->addEffectsFromProperties(DPTextEffects[data["main"][difficultyIndex]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
 				customLvlName->setPosition(lvlName->getPosition());
 				customLvlName->setAnchorPoint(lvlName->getAnchorPoint());
 				customLvlName->setScale(lvlName->getScale());
@@ -392,8 +392,8 @@ class $modify(DemonProgression, LevelCell) {
 						sprite = ListManager::getSpriteName(this->m_level);
 						plusSprite = fmt::format("{}Plus", sprite);
 					}*/
-					sprite = data["main"][gddpDiff]["sprite"].asString().unwrapOr("DP_Unknown");
-					plusSprite = data["main"][gddpDiff]["plusSprite"].asString().unwrapOr("DP_Unknown");
+					sprite = data["main"][difficultyIndex]["sprite"].asString().unwrapOr("DP_Unknown");
+					plusSprite = data["main"][difficultyIndex]["plusSprite"].asString().unwrapOr("DP_Unknown");
 					
 					//fallbacks
 					if (CCSprite::createWithSpriteFrameName(Mod::get()->expandSpriteName(fmt::format("{}.png", sprite)).data()) == nullptr) {
@@ -442,7 +442,7 @@ class $modify(DemonProgression, LevelCell) {
 						customDemonLabel->setScale(0.35f);
 						customDemonLabel->setZOrder(5);
 
-						customDemonLabel->addEffectsFromProperties(DPTextEffects[data["main"][gddpDiff]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
+						customDemonLabel->addEffectsFromProperties(DPTextEffects[data["main"][difficultyIndex]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
 
 						if (Mod::get()->getSettingValue<bool>("custom-demon-labels")) {
 							layer->addChild(customDemonLabel);
@@ -461,6 +461,7 @@ class $modify(DemonProgression, LevelCell) {
 						}
 					}
 				}
+
 				//typical list layer
 				else if (this->getChildByID("main-layer")->getChildByID("difficulty-container")) {
 					auto diffIcon = typeinfo_cast<GJDifficultySprite*>(this->getChildByID("main-layer")->getChildByID("difficulty-container")->getChildByID("difficulty-sprite"));
@@ -474,8 +475,8 @@ class $modify(DemonProgression, LevelCell) {
 						sprite = ListManager::getSpriteName(this->m_level);
 						plusSprite = fmt::format("{}Plus", sprite);
 					}*/
-					sprite = data["main"][gddpDiff]["sprite"].asString().unwrapOr("DP_Unknown");
-					plusSprite = data["main"][gddpDiff]["plusSprite"].asString().unwrapOr("DP_Unknown");
+					sprite = data["main"][difficultyIndex]["sprite"].asString().unwrapOr("DP_Unknown");
+					plusSprite = data["main"][difficultyIndex]["plusSprite"].asString().unwrapOr("DP_Unknown");
 
 					//fallbacks
 					if (CCSprite::createWithSpriteFrameName(Mod::get()->expandSpriteName(fmt::format("{}.png", sprite)).data()) == nullptr) {
@@ -524,7 +525,7 @@ class $modify(DemonProgression, LevelCell) {
 						customDemonLabel->setScale(0.35f);
 						customDemonLabel->setZOrder(5);
 
-						customDemonLabel->addEffectsFromProperties(DPTextEffects[data["main"][gddpDiff]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
+						customDemonLabel->addEffectsFromProperties(DPTextEffects[data["main"][difficultyIndex]["saveID"].asString().unwrapOr("none")].as<matjson::Value>().unwrapOrDefault());
 
 						if (Mod::get()->getSettingValue<bool>("custom-demon-labels")) {
 							layer->addChild(customDemonLabel);
@@ -543,7 +544,6 @@ class $modify(DemonProgression, LevelCell) {
 						}
 					}
 				}
-
 			}
 		}
 
@@ -558,14 +558,61 @@ class $modify(DemonProgression, LevelCell) {
 	void removeSelf() {
 		auto children = this->getParent()->getChildren();
 		int thisIndex = children->indexOfObject(this);
-		for (int childIndex = 0; childIndex < thisIndex; childIndex++) {
-			auto topLevelNode = static_cast<CCNode*>(children->objectAtIndex(childIndex));
-			auto bottomLevelNode = static_cast<CCNode*>(children->objectAtIndex(childIndex + 1));
-			topLevelNode->setPosition(bottomLevelNode->getPosition());
-		}
 
-		this->getParent()->setContentHeight(this->getParent()->getContentHeight() - this->getContentHeight());
-		this->removeFromParentAndCleanup(true);
+		auto dpListLayer = static_cast<DPListLayer*>(
+			this
+			->getParent()
+			->getParent()
+			->getParent()
+			->getParent()
+			->getParent()
+		);
+		auto levels = dpListLayer->getLevels();
+		auto index = DPUtils::vectorIndexOf<int>(levels, this->m_level->m_levelID);
+		auto indexToAdd = (index + 10) - (index % 10);
+
+		// because we're about to remove a level, we need to *add* the first level from the next page
+		// (if there is one), so that the page still has 10 levels
+		if (indexToAdd < levels.size()) {
+			auto levelToAdd = levels[indexToAdd];
+			getLevel(levelToAdd, [this, &levels, dpListLayer](GJGameLevel* level) {
+				auto parent = this->getParent();
+				auto cellHeight = this->getContentHeight();
+
+				// create the new level cell
+				auto cell = LevelCell::create(this->m_width, this->m_height);
+				cell->loadFromLevel(level);
+				cell->setContentSize(this->getContentSize());
+				parent->addChild(cell);
+
+				// remove this level cell
+				this->removeFromParentAndCleanup(true);
+				dpListLayer->removeLevel(this->m_level->m_levelID);
+				this->updateParent(parent, cellHeight);
+			});
+		} 
+		
+		// no more levels to fill the space - page just gets shorter
+		else {
+			auto parent = this->getParent();
+			auto cellHeight = this->getContentHeight();
+			this->removeFromParentAndCleanup(true);
+			dpListLayer->removeLevel(this->m_level->m_levelID);
+			this->updateParent(parent, cellHeight);
+			parent->setContentHeight(parent->getContentHeight() - cellHeight);
+			parent->setPositionY(parent->getPositionY() + cellHeight);
+		}
+	}
+
+	void updateParent(CCNode* parent, int cellHeight) {
+		// reposition all level cells to account for the removed cell
+		auto siblings = parent->getChildren();
+		int indexFromBottom = 0;
+		for (int index = siblings->count() - 1; index >= 0; index--, indexFromBottom++) {
+			auto levelCell = static_cast<LevelCell*>(siblings->objectAtIndex(index));
+			levelCell->setPosition({ levelCell->getPositionX(), (float) indexFromBottom * cellHeight });
+			levelCell->updateBGColor(index);
+		}
 	}
 
 	/**
